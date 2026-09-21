@@ -15,3 +15,11 @@ doc_events = {
     },
     'Vehicle': {'validate': 'dp_dispatch.validation.validate_vehicle'},
 }
+doctype_js = {
+    "Delivery Trip": "public/js/delivery_trip.js"
+}
+
+page_js = {
+    "fleet-map": "page/fleet_map/fleet_map.js",
+    "driver-gps": "page/driver_gps/driver_gps.js"
+}
