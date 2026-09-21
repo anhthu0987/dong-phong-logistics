@@ -308,7 +308,6 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
       return now.diff(moment(String(t).slice(0, 19)), 'minutes');
     }
 
-    // Hàm định dạng hiển thị thời gian linh hoạt
     function formatTimeAgo(time) {
       const m = ageMin(time);
       if (!isFinite(m)) return 'Mất tín hiệu';
@@ -443,7 +442,10 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
       const container = $('#vehicle-list-container');
       container.empty();
 
-      const filtered = vehiclesData.filter(v => {
+      // ÉP SẮP XẾP TẤT CẢ XE THEO MÃ BIỂN SỐ/ID (A-Z, 0-9)
+      const sortedData = vehiclesData.slice().sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true, sensitivity: 'base' }));
+
+      const filtered = sortedData.filter(v => {
         if (!filterKeyword) return true;
         return v.plate.toLowerCase().includes(filterKeyword.toLowerCase());
       });
@@ -500,6 +502,7 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
         args: {
           doctype: 'Vehicle',
           fields: ['name', 'custom_technical_status', 'custom_gps_device_id', 'custom_last_lat', 'custom_last_lng', 'custom_last_gps_time'],
+          order_by: 'name asc',
           limit_page_length: 500
         },
         callback: function(r) {

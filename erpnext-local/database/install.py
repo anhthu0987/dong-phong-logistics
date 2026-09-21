@@ -1,23 +1,10 @@
-"""Dong Phong - Fleet / Dispatch Database Snapshot v5 (Current System State).
-
-Tệp snapshot cấu trúc cơ sở dữ liệu và phân quyền tại thời điểm hiện tại:
-  1. Khởi tạo Custom Fields cho Vehicle, Address, Delivery Trip (Precision 9 cho Tọa độ).
-  2. Tạo DocType 'GPS Log' lưu vết di chuyển thực tế/giả lập.
-  3. Đánh chỉ mục Database Index kép trên tabGPS Log (vehicle + recorded_at, delivery_trip + recorded_at).
-  4. Đăng ký các trang Page giao diện ('fleet-map' và 'driver-gps') vào hệ thống.
-  5. Thiết lập phân quyền DocPerm cho các Role: Administrator, System Manager, Fleet Manager, Driver, GPS Device.
-
-LƯU Ý: Tệp này KHÔNG chứa dữ liệu mẫu (No Seed Data) nên hoàn toàn an toàn khi chạy trên môi trường thực tế.
-"""
-
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
-from frappe.permissions import update_permission_property
+from frappe.permissions import add_permission, update_permission_property
 
 COORD = dict(fieldtype='Float', precision='9')
 
-# 1. Định nghĩa danh sách Custom Fields hiện tại
 CUSTOM_FIELDS = {
     'Vehicle': [
         dict(fieldname='custom_payload_capacity_kg', label='Payload Capacity (kg)', fieldtype='Float',
@@ -57,9 +44,7 @@ CUSTOM_FIELDS = {
     ],
 }
 
-
 def setup_roles_and_pages():
-    """Khởi tạo Roles và Đăng ký 2 trang Page chính vào Database."""
     for r_name in ["GPS Device", "Driver", "Fleet Manager"]:
         if not frappe.db.exists("Role", r_name):
             frappe.get_doc({"doctype": "Role", "role_name": r_name, "desk_access": 1}).insert(ignore_permissions=True)
@@ -85,9 +70,7 @@ def setup_roles_and_pages():
             })
             page_doc.insert(ignore_permissions=True)
 
-
 def setup_gps_log_doctype():
-    """Tạo mới hoặc đảm bảo cấu trúc chuẩn cho DocType 'GPS Log' và Đánh Index."""
     doctype_name = "GPS Log"
     if not frappe.db.exists("DocType", doctype_name):
         doc = frappe.get_doc({
@@ -117,7 +100,6 @@ def setup_gps_log_doctype():
         })
         doc.insert(ignore_permissions=True)
 
-    # Đánh Index kép trên MySQL/MariaDB để tăng tốc độ truy vấn GPS History
     index_queries = [
         "ALTER TABLE `tabGPS Log` ADD INDEX `idx_vehicle_recorded` (`vehicle`, `recorded_at`);",
         "ALTER TABLE `tabGPS Log` ADD INDEX `idx_trip_recorded` (`delivery_trip`, `recorded_at`);"
@@ -128,37 +110,33 @@ def setup_gps_log_doctype():
         except Exception:
             pass
 
-
 def setup_database():
     print("==================================================")
     print("🚀 THIẾT LẬP DATABASE SCHEMA SNAPSHOT V5 (NO SEED DATA)")
     print("==================================================")
 
-    # 1. Tạo/Cập nhật Custom Fields
     create_custom_fields(CUSTOM_FIELDS, update=False)
     if not frappe.get_meta('Vehicle').allow_import:
         make_property_setter('Vehicle', None, 'allow_import', 1, 'Check', for_doctype=True)
     update_permission_property('Vehicle', 'Fleet Manager', 0, 'import', 1)
     print(">>> [1/4] Đã đồng bộ Custom Fields (Precision 9 cho Tọa độ)")
 
-    # 2. Đăng ký Roles và Pages
     setup_roles_and_pages()
     print(">>> [2/4] Đã đăng ký Roles & Pages 'fleet-map' / 'driver-gps'")
 
-    # 3. Tạo DocType GPS Log & Index
     setup_gps_log_doctype()
     print(">>> [3/4] Đã thiết lập DocType 'GPS Log' & Database Indexes")
 
-    # 4. Cấp quyền DocPerm cho các DocType liên quan
-    for dt in ["Delivery Trip", "Delivery Stop", "Vehicle"]:
-        if frappe.db.exists("DocType", dt):
-            d_doc = frappe.get_doc("DocType", dt)
-            existing_roles = [perm.role for perm in d_doc.permissions]
-            for r in ["Driver", "Fleet Manager", "GPS Device", "All"]:
-                if r not in existing_roles:
-                    d_doc.append("permissions", {"role": r, "read": 1})
-            d_doc.save(ignore_permissions=True)
-    print(">>> [4/4] Đã cấp quyền DocPerm cho Delivery Trip, Delivery Stop & Vehicle")
+    target_roles = ["Driver", "Fleet Manager", "GPS Device"]
+    target_doctypes = ["Delivery Trip", "Delivery Stop", "Vehicle"]
+
+    for dt in target_doctypes:
+        for r in target_roles:
+            add_permission(dt, r, ptype=0)
+            add_permission(dt, r, ptype=1)
+            if r == "Fleet Manager":
+                add_permission(dt, r, ptype=2)
+    print(">>> [4/4] Đã cấp quyền DocPerm chuẩn cho Delivery Trip, Delivery Stop & Vehicle")
 
     frappe.clear_cache()
     frappe.db.commit()

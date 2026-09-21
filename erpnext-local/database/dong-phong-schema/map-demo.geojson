@@ -1,0 +1,266 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.641,
+          10.867
+        ]
+      },
+      "properties": {
+        "kind": "depot",
+        "name": "Kho trung tâm Đông Phong (mô phỏng)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6482,
+          10.8726
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51C-901.23",
+        "status": "Out of Service",
+        "device": "DP-GPS-009",
+        "last_gps_time": "2026-09-11 02:13:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6473,
+          10.8719
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "72C-890.12",
+        "status": "Under Maintenance",
+        "device": "DP-GPS-008",
+        "last_gps_time": "2026-09-18 02:13:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6464,
+          10.8712
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "61C-789.01",
+        "status": "Available",
+        "device": "DP-GPS-007",
+        "last_gps_time": "2026-09-21 02:11:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6455,
+          10.8705
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "60C-678.90",
+        "status": "Available",
+        "device": "DP-GPS-006",
+        "last_gps_time": "2026-09-21 02:11:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6446,
+          10.8698
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51D-567.89",
+        "status": "Available",
+        "device": "DP-GPS-005",
+        "last_gps_time": "2026-09-21 02:11:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6437,
+          10.8691
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51D-456.78",
+        "status": "Available",
+        "device": "DP-GPS-004",
+        "last_gps_time": "2026-09-21 02:11:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6428,
+          10.8684
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51C-345.67",
+        "status": "Available",
+        "device": "DP-GPS-003",
+        "last_gps_time": "2026-09-21 02:11:08.484093"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6419,
+          10.8677
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51C-234.56",
+        "status": "Available",
+        "device": "DP-GPS-002",
+        "last_gps_time": "2026-09-21 02:53:04.139229"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.641,
+          10.867
+        ]
+      },
+      "properties": {
+        "kind": "vehicle",
+        "plate": "51C-123.45",
+        "status": "Available",
+        "device": "DP-GPS-001",
+        "last_gps_time": "2026-09-21 02:53:04.139229"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            106.641,
+            10.867
+          ],
+          [
+            106.6519,
+            10.9804
+          ],
+          [
+            106.641,
+            10.867
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "route",
+        "trip": "MAT-DT-2026-00001",
+        "vehicle": "51C-123.45",
+        "driver": "Nguyễn Văn An",
+        "departure": "2026-09-20 08:00:00",
+        "load_kg": 900.0,
+        "distance_km": 56.7
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6519,
+          10.9804
+        ]
+      },
+      "properties": {
+        "kind": "stop",
+        "trip": "MAT-DT-2026-00001",
+        "seq": 1,
+        "customer": "DP DEMO - Điểm giao Bình Dương",
+        "distance_km": 15.8,
+        "eta": "2026-09-20 08:27:00"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            106.641,
+            10.867
+          ],
+          [
+            106.6519,
+            10.9804
+          ],
+          [
+            106.641,
+            10.867
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "route",
+        "trip": "MAT-DT-2026-00016",
+        "vehicle": "51C-234.56",
+        "driver": "Trần Minh Bình",
+        "departure": "2026-09-21 08:00:00",
+        "load_kg": 1100.0,
+        "distance_km": 31.6
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.6519,
+          10.9804
+        ]
+      },
+      "properties": {
+        "kind": "stop",
+        "trip": "MAT-DT-2026-00016",
+        "seq": 1,
+        "customer": "DP DEMO - Điểm giao Bình Dương",
+        "distance_km": 15.8,
+        "eta": "2026-09-21 08:27:00"
+      }
+    }
+  ]
+}

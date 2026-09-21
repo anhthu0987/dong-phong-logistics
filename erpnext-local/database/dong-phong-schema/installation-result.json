@@ -1,0 +1,32 @@
+{
+  "scope": "member_1_fleet_dispatch_gps_map_v2",
+  "created": [
+    [
+      "Delivery Trip",
+      "MAT-DT-2026-00016"
+    ]
+  ],
+  "created_count": 1,
+  "demo_trips": [
+    "MAT-DT-2026-00001",
+    "MAT-DT-2026-00016"
+  ],
+  "distance_uom": "Kilometer",
+  "geojson_features": 14,
+  "google_maps": {
+    "enabled": false,
+    "api_key_set": false
+  },
+  "warnings": [
+    "Delivery Stop.lat precision=None (<6): sua tay tren form co the bi lam tron toa do.",
+    "Delivery Stop.lng precision=None (<6): sua tay tren form co the bi lam tron toa do."
+  ],
+  "counts": {
+    "Vehicle": 9,
+    "Driver": 8,
+    "Customer": 10,
+    "Address": 10,
+    "Delivery Trip": 16
+  },
+  "vehicle_import_enabled": 1
+}
