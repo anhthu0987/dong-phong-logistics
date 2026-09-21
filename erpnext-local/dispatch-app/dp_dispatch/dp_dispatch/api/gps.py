@@ -89,9 +89,10 @@ def log_location():
     if not frappe.db.exists("Vehicle", vehicle):
         frappe.throw(_("Xe {0} không tồn tại").format(vehicle))
 
-    # Deny-by-default: chỉ simulator, điều phối hoặc đúng tài xế của xe mới được ghi
-    if not (_is_simulator() or _is_dispatcher() or _driver_owns_vehicle(_get_current_driver(), vehicle)):
-        frappe.throw(_("Bạn không có quyền ghi GPS cho xe {0}").format(vehicle), frappe.PermissionError)
+    # Tài xế phải gửi theo đúng chuyến được giao, không chỉ theo chiếc xe từng lái.
+    if not (_is_simulator() or _is_dispatcher()):
+        if not delivery_trip or not _driver_owns_trip(_get_current_driver(), delivery_trip):
+            frappe.throw(_("Bạn chỉ được ghi GPS cho chuyến được phân công."), frappe.PermissionError)
 
     if delivery_trip:
         if not frappe.db.exists("Delivery Trip", delivery_trip):
@@ -149,6 +150,7 @@ def get_gps_history(vehicle=None, delivery_trip=None, limit=100):
     if not vehicle and not delivery_trip:
         frappe.throw(_("Cần cung cấp vehicle hoặc delivery_trip"))
 
+    driver = None
     if not _is_dispatcher():
         driver = _get_current_driver()
         if not driver:
@@ -160,6 +162,10 @@ def get_gps_history(vehicle=None, delivery_trip=None, limit=100):
 
     conditions = []
     values = {}
+
+    if driver:
+        conditions.append("delivery_trip IN (SELECT name FROM `tabDelivery Trip` WHERE driver = %(driver)s)")
+        values["driver"] = driver
 
     if vehicle:
         conditions.append("vehicle = %(vehicle)s")
@@ -237,9 +243,19 @@ def complete_delivery_stop(stop_name=None):
 
     parent_trip = frappe.db.get_value("Delivery Stop", stop_name, "parent")
 
+    # Giữ khóa chuyến đến khi cập nhật xong, tránh xác nhận đồng thời với thao tác hủy.
+    trip = frappe.db.get_value(
+        "Delivery Trip", parent_trip, ["driver", "docstatus", "status"],
+        as_dict=True, for_update=True,
+    )
+
     # Chỉ đúng tài xế của chuyến này mới được đánh dấu (không có ngoại lệ, kể cả quản trị)
-    if not _driver_owns_trip(_get_current_driver(), parent_trip):
+    driver = _get_current_driver()
+    if not trip or not driver or trip.driver != driver:
         frappe.throw(_("Điểm dừng này không thuộc chuyến của bạn"), frappe.PermissionError)
+
+    if trip.docstatus == 2 or trip.status == "Cancelled":
+        frappe.throw(_("Không thể xác nhận điểm giao của chuyến đã hủy."))
 
     frappe.db.set_value("Delivery Stop", stop_name, "visited", 1, update_modified=True)
 

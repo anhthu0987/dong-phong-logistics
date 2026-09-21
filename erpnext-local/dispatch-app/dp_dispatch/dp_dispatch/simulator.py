@@ -1,13 +1,18 @@
 import time
 import requests
+import argparse
+import json
+import os
+import uuid
 from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
 BASE_URL = "http://127.0.0.1:8000"
-ENDPOINT = "/api/method/dp_dispatch.api.gps.log_location"
+ENDPOINT = "/api/method/dp_dispatch.dp_dispatch.api.gps.log_location"
 
 VEHICLE = "51C-123.45"
 DELIVERY_TRIP = "MAT-DT-2026-00001"
-RUN_ID = "sim-run-001"
 INTERVAL_SECONDS = 5
 
 SIMULATED_ROUTE = [
@@ -20,25 +25,39 @@ SIMULATED_ROUTE = [
     (10.9650, 106.6600), (10.9804, 106.6519)
 ]
 
-def run_simulation():
+def run_simulation(config):
+    api_key = os.environ.get('DP_GPS_API_KEY') or config.get('api_key')
+    api_secret = os.environ.get('DP_GPS_API_SECRET') or config.get('api_secret')
+    if not api_key or not api_secret:
+        raise ValueError('Thiếu api_key/api_secret trong cấu hình riêng hoặc biến môi trường.')
+    base_url = (os.environ.get('DP_GPS_BASE_URL') or config.get('base_url', BASE_URL)).rstrip('/')
+    vehicle = config.get('vehicle', VEHICLE)
+    delivery_trip = config.get('delivery_trip', DELIVERY_TRIP)
+    interval = float(config.get('interval_seconds', INTERVAL_SECONDS))
+    if not 0 <= interval <= 3600:
+        raise ValueError('interval_seconds phải nằm trong khoảng 0–3600.')
+    zone = ZoneInfo(config.get('time_zone', 'Asia/Ho_Chi_Minh'))
+    run_id = uuid.uuid4().hex
     print("=" * 60)
     print("BẮT ĐẦU CHƯƠNG TRÌNH GIẢ LẬP GPS")
-    print(f"Xe: {VEHICLE} | Chuyến: {DELIVERY_TRIP} | Run ID: {RUN_ID}")
-    print(f"Tần suất: {INTERVAL_SECONDS}s/bản tin | Tổng số điểm: {len(SIMULATED_ROUTE)}")
+    print(f"Xe: {vehicle} | Chuyến: {delivery_trip} | Run ID: {run_id}")
+    print(f"Tần suất: {interval}s/bản tin | Tổng số điểm: {len(SIMULATED_ROUTE)}")
     print("=" * 60)
 
-    url = f"{BASE_URL}{ENDPOINT}"
+    url = f"{base_url}{ENDPOINT}"
     headers = {
-        "Host": "logistics.localhost"
+        "Authorization": f"token {api_key}:{api_secret}"
     }
+    if config.get('site'):
+        headers['Host'] = config['site']
 
     for idx, (lat, lng) in enumerate(SIMULATED_ROUTE):
-        source_event_id = f"{RUN_ID}-point-{idx+1:03d}"
-        recorded_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        source_event_id = f"{run_id}-point-{idx+1:03d}"
+        recorded_at = datetime.now(zone).strftime("%Y-%m-%d %H:%M:%S")
 
         payload = {
-            "vehicle": VEHICLE,
-            "delivery_trip": DELIVERY_TRIP,
+            "vehicle": vehicle,
+            "delivery_trip": delivery_trip,
             "recorded_at": recorded_at,
             "latitude": lat,
             "longitude": lng,
@@ -49,18 +68,26 @@ def run_simulation():
         print(f"[{idx+1}/{len(SIMULATED_ROUTE)}] Gửi tọa độ ({lat}, {lng}) lúc {recorded_at}")
         
         try:
-            res = requests.post(url, data=payload, headers=headers, timeout=5)
-            if res.status_code == 200:
-                print(f"   Success: {res.json().get('message', res.json())}")
-            else:
-                print(f"   Error {res.status_code}: {res.text}")
-        except Exception as e:
-            print(f"   Connect Error: {e}")
+            res = requests.post(url, data=payload, headers=headers, timeout=15, allow_redirects=False)
+        except requests.RequestException:
+            raise RuntimeError('Không kết nối được máy chủ; dừng mô phỏng.') from None
+        if res.status_code != 200:
+            raise RuntimeError(f'API trả HTTP {res.status_code}; kiểm tra tài khoản, quyền và cấu hình.')
+        result = res.json().get('message', {})
+        if result.get('status') not in ('success', 'ignored'):
+            raise RuntimeError('Máy chủ chưa xác nhận bản tin; dừng mô phỏng.')
+        print(f"   Success: {result['status']}")
 
         if idx < len(SIMULATED_ROUTE) - 1:
-            time.sleep(INTERVAL_SECONDS)
+            time.sleep(interval)
 
     print("HOÀN THÀNH TOÀN BỘ TUYẾN ĐƯỜNG GIẢ LẬP!")
 
 if __name__ == "__main__":
-    run_simulation()
+    parser = argparse.ArgumentParser(description='Gửi tọa độ GPS giả lập bằng tài khoản API riêng.')
+    parser.add_argument('--config', type=Path, default=Path(__file__).with_name('gps_config.local.json'))
+    args = parser.parse_args()
+    try:
+        run_simulation(json.loads(args.config.read_text(encoding='utf-8-sig')))
+    except (OSError, ValueError, RuntimeError) as exc:
+        parser.exit(1, f'Lỗi: {exc}\n')

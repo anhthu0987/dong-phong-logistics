@@ -90,7 +90,7 @@ frappe.pages['driver-gps'].on_page_load = function (wrapper) {
 
   function loadDriverSchedule() {
     frappe.call({
-      method: 'dp_dispatch.api.gps.get_driver_schedule',
+      method: 'dp_dispatch.dp_dispatch.api.gps.get_driver_schedule',
       callback: function (r) {
         if (!r.message || !r.message.trip) {
           $('#driver-trip-title').text('Chưa có chuyến hàng');
@@ -152,7 +152,7 @@ frappe.pages['driver-gps'].on_page_load = function (wrapper) {
           btn.prop('disabled', true).text('Đang xử lý...');
 
           frappe.call({
-            method: 'dp_dispatch.api.gps.complete_delivery_stop',
+            method: 'dp_dispatch.dp_dispatch.api.gps.complete_delivery_stop',
             args: { stop_name: stopName },
             callback: function (res) {
               if (res.message && res.message.status === 'success') {

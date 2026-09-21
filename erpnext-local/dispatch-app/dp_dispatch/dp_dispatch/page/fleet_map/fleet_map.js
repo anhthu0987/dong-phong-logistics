@@ -418,7 +418,7 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
     function loadGpsHistory(plate) {
       historyLayer.clearLayers();
       frappe.call({
-        method: 'dp_dispatch.api.gps.get_gps_history',
+        method: 'dp_dispatch.dp_dispatch.api.gps.get_gps_history',
         args: { vehicle: plate, limit: 200 },
         callback: function(r) {
           if (!r.message || !r.message.length) {
