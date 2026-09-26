@@ -1,6 +1,7 @@
 """
 Dong Phong Logistics - System Schema & Demo Data Installation.
-Integrated: Member 1 (Fleet/Dispatch) & Member 2 (Operations/Delivery Confirmation).
+Integrated: Member 1 (Fleet/Dispatch) & Member 2 (Operations, Delivery Confirmation, Maintenance & Fuel).
+Strictly non-destructive: Safe checks for all existing doctypes and data.
 """
 import json
 from pathlib import Path
@@ -8,6 +9,7 @@ import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from frappe.permissions import update_permission_property
+
 
 CUSTOM_FIELDS = {
     'Vehicle': [
@@ -22,12 +24,12 @@ CUSTOM_FIELDS = {
 }
 
 def create_delivery_confirmation_doctypes():
-    """Tự động tạo bảng Delivery Confirmation Item (Child Table) và Delivery Confirmation (Parent DocType)"""
+    """Tự động tạo bảng Delivery Confirmation Item (Child) và Delivery Confirmation (Parent)"""
     module = 'Dong Phong Operations'
     if not frappe.db.exists('Module Def', module):
         frappe.get_doc(dict(doctype='Module Def', module_name=module, app_name='operations_app')).insert(ignore_permissions=True)
 
-    # 1. Bảng con: Delivery Confirmation Item
+    # Delivery Confirmation Item
     if not frappe.db.exists('DocType', 'Delivery Confirmation Item'):
         child_doc = frappe.get_doc({
             'doctype': 'DocType',
@@ -45,7 +47,7 @@ def create_delivery_confirmation_doctypes():
         })
         child_doc.insert(ignore_permissions=True)
 
-    # 2. Bảng cha: Delivery Confirmation
+    #Delivery Confirmation
     if not frappe.db.exists('DocType', 'Delivery Confirmation'):
         parent_doc = frappe.get_doc({
             'doctype': 'DocType',
@@ -73,12 +75,67 @@ def create_delivery_confirmation_doctypes():
         })
         parent_doc.insert(ignore_permissions=True)
 
+def create_maintenance_doctypes():
+    """Tự động tạo Fleet Maintenance Plan và Fleet Maintenance Record"""
+    module = 'Dong Phong Operations'
+    if not frappe.db.exists('Module Def', module):
+        frappe.get_doc(dict(doctype='Module Def', module_name=module, app_name='operations_app')).insert(ignore_permissions=True)
+
+    # Fleet Maintenance Plan
+    if not frappe.db.exists('DocType', 'Fleet Maintenance Plan'):
+        plan_doc = frappe.get_doc({
+            'doctype': 'DocType',
+            'name': 'Fleet Maintenance Plan',
+            'module': module,
+            'custom': 1,
+            'naming_rule': 'By "Naming Series" field',
+            'autoname': 'naming_series:',
+            'fields': [
+                {'fieldname': 'naming_series', 'label': 'Series', 'fieldtype': 'Select', 'options': 'DP-MP-.YYYY.-', 'default': 'DP-MP-.YYYY.-', 'reqd': 1},
+                {'fieldname': 'vehicle', 'label': 'Vehicle', 'fieldtype': 'Link', 'options': 'Vehicle', 'reqd': 1, 'in_list_view': 1},
+                {'fieldname': 'service_item', 'label': 'Service Item', 'fieldtype': 'Data', 'reqd': 1, 'in_list_view': 1},
+                {'fieldname': 'interval_km', 'label': 'Interval (km)', 'fieldtype': 'Int', 'default': 5000},
+                {'fieldname': 'interval_days', 'label': 'Interval (Days)', 'fieldtype': 'Int', 'default': 90},
+                {'fieldname': 'next_due_date', 'label': 'Next Due Date', 'fieldtype': 'Date'}
+            ],
+            'permissions': [
+                {'role': 'System Manager', 'read': 1, 'write': 1, 'create': 1, 'delete': 1},
+                {'role': 'Fleet Manager', 'read': 1, 'write': 1, 'create': 1}
+            ]
+        })
+        plan_doc.insert(ignore_permissions=True)
+
+    # Fleet Maintenance Record
+    if not frappe.db.exists('DocType', 'Fleet Maintenance Record'):
+        record_doc = frappe.get_doc({
+            'doctype': 'DocType',
+            'name': 'Fleet Maintenance Record',
+            'module': module,
+            'custom': 1,
+            'is_submittable': 1,
+            'naming_rule': 'By "Naming Series" field',
+            'autoname': 'naming_series:',
+            'fields': [
+                {'fieldname': 'naming_series', 'label': 'Series', 'fieldtype': 'Select', 'options': 'DP-MR-.YYYY.-', 'default': 'DP-MR-.YYYY.-', 'reqd': 1},
+                {'fieldname': 'maintenance_plan', 'label': 'Maintenance Plan', 'fieldtype': 'Link', 'options': 'Fleet Maintenance Plan', 'in_list_view': 1},
+                {'fieldname': 'vehicle', 'label': 'Vehicle', 'fieldtype': 'Link', 'options': 'Vehicle', 'reqd': 1, 'in_list_view': 1},
+                {'fieldname': 'performed_at', 'label': 'Performed At', 'fieldtype': 'Datetime', 'reqd': 1, 'in_list_view': 1},
+                {'fieldname': 'accepted', 'label': 'Accepted (Nghiệm thu)', 'fieldtype': 'Check', 'default': 1, 'in_list_view': 1},
+                {'fieldname': 'notes', 'label': 'Notes', 'fieldtype': 'Small Text'}
+            ],
+            'permissions': [
+                {'role': 'System Manager', 'read': 1, 'write': 1, 'create': 1, 'submit': 1, 'cancel': 1, 'delete': 1},
+                {'role': 'Fleet Manager', 'read': 1, 'write': 1, 'create': 1, 'submit': 1}
+            ]
+        })
+        record_doc.insert(ignore_permissions=True)
+
 def install():
     company = 'Công ty Phân phối Đông Phong'
     if not frappe.db.exists('Company', company):
         raise RuntimeError('Expected Dong Phong company does not exist.')
 
-    # Tạo Custom Fields
+    # Tạo Custom Fields chuẩn của nhóm
     for dt, fields in CUSTOM_FIELDS.items():
         meta = frappe.get_meta(dt)
         for f in fields:
@@ -91,8 +148,9 @@ def install():
         make_property_setter('Vehicle', None, 'allow_import', 1, 'Check', for_doctype=True)
     update_permission_property('Vehicle', 'Fleet Manager', 0, 'import', 1)
 
-    # Khởi tạo 2 DocType Giao nhận
+    
     create_delivery_confirmation_doctypes()
+    create_maintenance_doctypes()
 
     frappe.clear_cache()
     frappe.db.commit()
@@ -162,7 +220,7 @@ def install():
         trip = doc.name
         created.append(['Delivery Trip', trip])
 
-    # Mặt hàng demo HANG-01
+    # Mặt hàng demo 
     item_code = 'HANG-01'
     if not frappe.db.exists('Item', item_code):
         doc = frappe.get_doc(dict(
@@ -172,7 +230,7 @@ def install():
         doc.insert(ignore_permissions=True)
         created.append(['Item', item_code])
 
-    # Phiếu xác nhận giao hàng demo (DP-DC)
+    # Phiếu xác nhận giao hàng demo 
     dc_name = frappe.db.get_value('Delivery Confirmation', {'delivery_trip': trip}, 'name')
     if not dc_name:
         dc_doc = frappe.get_doc({
@@ -193,6 +251,36 @@ def install():
         dc_name = dc_doc.name
         created.append(['Delivery Confirmation', dc_name])
 
+    # Kế hoạch & Bản ghi bảo trì demo 
+    vehicle_plate = '51C-123.45'
+    plan_name = frappe.db.get_value('Fleet Maintenance Plan', {'vehicle': vehicle_plate}, 'name')
+    if not plan_name:
+        plan = frappe.get_doc({
+            'doctype': 'Fleet Maintenance Plan',
+            'vehicle': vehicle_plate,
+            'service_item': 'Thay nhớt & bảo dưỡng định kỳ',
+            'interval_km': 5000,
+            'interval_days': 90,
+            'next_due_date': frappe.utils.add_days(frappe.utils.today(), 30)
+        })
+        plan.insert(ignore_permissions=True)
+        plan_name = plan.name
+        created.append(['Fleet Maintenance Plan', plan_name])
+
+    record_name = frappe.db.get_value('Fleet Maintenance Record', {'vehicle': vehicle_plate}, 'name')
+    if not record_name:
+        rec = frappe.get_doc({
+            'doctype': 'Fleet Maintenance Record',
+            'maintenance_plan': plan_name,
+            'vehicle': vehicle_plate,
+            'performed_at': frappe.utils.now_datetime(),
+            'accepted': 1,
+            'notes': 'Đã hoàn tất bảo dưỡng cấp 1 tại trạm Isuzu Bình Dương.'
+        })
+        rec.insert(ignore_permissions=True)
+        record_name = rec.name
+        created.append(['Fleet Maintenance Record', record_name])
+
     frappe.db.commit()
 
     # Xuất schema metadata ra file
@@ -200,7 +288,9 @@ def install():
     out.mkdir(exist_ok=True)
     names = [
         'Company', 'Vehicle', 'Driver', 'Delivery Trip', 'Delivery Stop',
-        'Customer', 'Address', 'Dynamic Link', 'Delivery Confirmation', 'Delivery Confirmation Item'
+        'Customer', 'Address', 'Dynamic Link', 
+        'Delivery Confirmation', 'Delivery Confirmation Item',
+        'Fleet Maintenance Plan', 'Fleet Maintenance Record'
     ]
     metadata = {}
     ddl = []
@@ -224,7 +314,8 @@ def install():
         'created': created,
         'demo_trip': trip,
         'demo_delivery_confirmation': dc_name,
-        'counts': {n: frappe.db.count(n) for n in ['Vehicle', 'Driver', 'Delivery Trip', 'Delivery Confirmation']},
+        'demo_maintenance_record': record_name,
+        'counts': {n: frappe.db.count(n) for n in ['Vehicle', 'Driver', 'Delivery Trip', 'Delivery Confirmation', 'Fleet Maintenance Record']},
         'vehicle_import_enabled': frappe.get_meta('Vehicle').allow_import
     }
     (out / 'installation-result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
