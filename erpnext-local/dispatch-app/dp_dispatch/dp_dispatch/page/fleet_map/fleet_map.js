@@ -496,63 +496,72 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
       m._dp = Object.assign(m._dp || {}, v);
     }
 
+    const LIVE_METHOD = 'dp_dispatch.dp_dispatch.api.gps_redis.get_live_positions';
+    const POLL_MS = 3000;
+
+    function applyLive(rows) {
+      let online = 0;
+      vehiclesData = [];
+      rows.forEach(function(row) {
+        if (!row.lat || !row.lng) return;
+        vehiclesData.push(row);
+        upsertVehicle(row);
+        if (ageMin(row.time) < 5) online++;
+      });
+      $('#stat-total').text(rows.length + ' xe');
+      $('#stat-online').text(online + ' Trực tuyến');
+      renderVehicleList($('#vehicle-search').val());
+    }
+
     function loadVehicles(isRefresh) {
       return frappe.call({
-        method: 'frappe.client.get_list',
-        args: {
-          doctype: 'Vehicle',
-          fields: ['name', 'custom_technical_status', 'custom_gps_device_id', 'custom_last_lat', 'custom_last_lng', 'custom_last_gps_time'],
-          order_by: 'name asc',
-          limit_page_length: 500
-        },
+        method: LIVE_METHOD,
         callback: function(r) {
           if (!r.message) return;
-          let online = 0;
-          vehiclesData = [];
+          applyLive(r.message);
 
-          const promises = r.message.map(function(row) {
-            if (row.custom_last_lat && row.custom_last_lng) {
-              const vObj = {
-                plate: row.name,
-                status: row.custom_technical_status,
-                device: row.custom_gps_device_id,
-                lat: row.custom_last_lat,
-                lng: row.custom_last_lng,
-                time: row.custom_last_gps_time,
-                source_type: 'Hardware GPS'
-              };
-
-              return frappe.db.get_value('GPS Log', { vehicle: row.name }, 'source_type')
-                .then(function(res) {
-                  if (res && res.message && res.message.source_type) {
-                    vObj.source_type = res.message.source_type;
-                  }
-                  vehiclesData.push(vObj);
-                  upsertVehicle(vObj);
-                  if (ageMin(row.custom_last_gps_time) < 5) online++;
-                });
-            }
-            return Promise.resolve();
-          });
-
-          Promise.all(promises).then(function() {
-            $('#stat-total').text(r.message.length + ' xe');
-            $('#stat-online').text(online + ' Trực tuyến');
-            renderVehicleList($('#vehicle-search').val());
-
-            const pts = Object.values(markers).map(m => m.getLatLng());
-            if (pts.length && !loadVehicles.fitted) {
-              map.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 13 }); 
-              loadVehicles.fitted = true;
-            }
-
-            if (isRefresh && selectedPlate) {
-              selectVehicle(selectedPlate, true);
-            }
-          });
+          const pts = Object.values(markers).map(m => m.getLatLng());
+          if (pts.length && !loadVehicles.fitted) {
+            map.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 13 });
+            loadVehicles.fitted = true;
+          }
+          if (isRefresh && selectedPlate) {
+            selectVehicle(selectedPlate, true);
+          }
         }
       });
     }
+
+    // ---- 3s live poll (runs only while this page is visible/focused) ----
+    const VERSION = 'redis-3s v3';
+    console.log('[fleet-map] loaded', VERSION);
+
+    let polling = false;
+    function pollOnce() {
+      if (polling) return;                       // don't overlap slow requests
+      if (document.hidden || !$(wrapper).is(':visible')) return;
+      polling = true;
+      frappe.call({
+        method: LIVE_METHOD,
+        freeze: false,
+        callback: function(r) {
+          if (r.message) {
+            applyLive(r.message);
+            const t = new Date().toLocaleTimeString();
+            console.log('[fleet-map] poll ok', t);
+          }
+        },
+        always: function() { polling = false; }
+      });
+    }
+
+    const pollTimer = setInterval(pollOnce, POLL_MS);
+    // poll immediately when the tab/page regains focus
+    document.addEventListener('visibilitychange', pollOnce);
+    $(window).on('focus', pollOnce);
+    $(document).on('page-change', function() {
+      if (!document.body.contains(wrapper)) clearInterval(pollTimer);
+    });
 
     function calcDist(lat1, lon1, lat2, lon2) {
       const R = 6371;

@@ -23,3 +23,11 @@ page_js = {
     "fleet-map": "page/fleet_map/fleet_map.js",
     "driver-gps": "page/driver_gps/driver_gps.js"
 }
+
+scheduler_events = {
+    "cron": {
+        # fallback only; the 3s loop is run_flusher (see compose service)
+        "* * * * *": ["dp_dispatch.dp_dispatch.api.gps_redis.scheduled_flush"],
+    }
+}
+ 

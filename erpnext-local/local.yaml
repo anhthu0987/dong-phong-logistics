@@ -25,3 +25,16 @@ services:
     image: redis:6.2-alpine
   redis-queue:
     image: redis:6.2-alpine
+  gps-flusher:
+    image: logistics-erpnext:dispatch-v1
+    restart: unless-stopped
+    working_dir: /home/frappe/frappe-bench
+    command:
+      - bash
+      - -c
+      - bench --site logistics.localhost execute dp_dispatch.dp_dispatch.api.gps_redis.run_flusher
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - db
+      - redis-queue

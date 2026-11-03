@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.utils import get_datetime
 
+from dp_dispatch.dp_dispatch.api import gps_redis
+
 DRIVER_ROLE = "DP Driver"
 SIM_ROLE = "DP GPS Simulator"
 
@@ -95,48 +97,30 @@ def log_location():
             frappe.throw(_("Bạn chỉ được ghi GPS cho chuyến được phân công."), frappe.PermissionError)
 
     if delivery_trip:
-        if not frappe.db.exists("Delivery Trip", delivery_trip):
+        trip_vehicle = frappe.db.get_value("Delivery Trip", delivery_trip, "vehicle")
+        if trip_vehicle is None:
             frappe.throw(_("Chuyến {0} không tồn tại").format(delivery_trip))
-        trip_doc = frappe.get_doc("Delivery Trip", delivery_trip)
-        if trip_doc.vehicle != vehicle:
+        if trip_vehicle != vehicle:
             frappe.throw(_("Xe {0} không thuộc chuyến {1}").format(vehicle, delivery_trip))
 
-    existing = frappe.db.get_value(
-        "GPS Log", {"source_event_id": source_event_id}, ["name", "latitude", "longitude"], as_dict=True
-    )
-    if existing:
-        if float(existing.latitude) == lat and float(existing.longitude) == lng:
-            return {"status": "ignored", "message": "Bản tin trùng lặp đã được xử lý", "source_event_id": source_event_id}
-        else:
-            frappe.throw(
-                _("Xung đột: source_event_id {0} đã tồn tại với nội dung khác").format(source_event_id),
-                frappe.DuplicateEntryError,
-            )
+    try:
+        ts_s = get_datetime(recorded_at).strftime("%Y-%m-%d %H:%M:%S.%f")
+    except Exception:
+        frappe.throw(_("recorded_at không hợp lệ"))
 
-    gps_doc = frappe.get_doc({
-        "doctype": "GPS Log",
+    # Chỉ đẩy vào Redis; flusher (3s) sẽ ghi GPS Log + cập nhật Vehicle.custom_last_*
+    result = gps_redis.enqueue({
         "vehicle": vehicle,
-        "delivery_trip": delivery_trip,
-        "recorded_at": recorded_at,
+        "delivery_trip": delivery_trip or None,
+        "recorded_at": ts_s,
         "latitude": lat,
         "longitude": lng,
         "source_event_id": source_event_id,
         "source_type": source_type,
     })
-    gps_doc.insert(ignore_permissions=True)
-
-    current_last_time = frappe.db.get_value("Vehicle", vehicle, "custom_last_gps_time")
-    new_time = get_datetime(recorded_at)
-
-    if not current_last_time or new_time >= get_datetime(current_last_time):
-        frappe.db.set_value("Vehicle", vehicle, {
-            "custom_last_lat": lat,
-            "custom_last_lng": lng,
-            "custom_last_gps_time": recorded_at,
-        }, update_modified=False)
-
-    frappe.db.commit()
-    return {"status": "success", "source_event_id": source_event_id, "name": gps_doc.name}
+    if result == "duplicate":
+        return {"status": "ignored", "message": "Bản tin trùng lặp đã được xử lý", "source_event_id": source_event_id}
+    return {"status": "success", "queued": True, "source_event_id": source_event_id}
 
 
 # ----------------------------------------------------------------------
