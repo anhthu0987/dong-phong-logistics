@@ -7,8 +7,7 @@ Repository cho ứng dụng Frappe `dp_dispatch` và môi trường ERPNext loca
 - [COMMAND_README](docs/COMMAND_README.md): tổng hợp file YAML/JSON cấu hình Docker, lệnh PowerShell, init site, build, chạy, backup và deploy. Dùng tài liệu này khi cài hoặc vận hành môi trường.
 - [DOC_README](docs/DOC_README.md): kiến trúc app, cấu trúc thư mục, DocType/schema, luồng nghiệp vụ, validation và API.
 - [Phân công nhóm](docs/PHAN_CONG.md): phạm vi ban đầu của các thành viên. Một số nội dung trong tài liệu phân công là kế hoạch ban đầu; xem DOC_README để biết trạng thái code hiện tại.
-- [Thành viên 2 – hướng dẫn vận hành](docs/THANH_VIEN_2.md).
-- [Thay đổi luồng sau demo](docs/THAY_DOI_VAN_HANH_SAU_DEMO.md).
+- [Thành viên 2 – hướng dẫn vận hành](docs/THANH_VIEN_2.md): hướng dẫn demo, quy trình giao hàng, duyệt chi phí và các quyết định vận hành sau demo.
 
 ## Các thành phần
 

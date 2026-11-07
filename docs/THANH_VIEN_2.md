@@ -6,7 +6,7 @@ Phần này bổ sung vào app `dp_dispatch`, tương thích site ERPNext v16 đ
 
 ## Phần được bổ sung
 
-- `Delivery Confirmation` và bảng con `Delivery Confirmation Item`: lưu xác nhận giao nhận, người nhận, thời điểm và tệp bằng chứng. Mỗi điểm giao chỉ có một xác nhận đã Submit; mỗi dòng tham chiếu chính xác một dòng `Delivery Note Item`.
+- `Delivery Confirmation` và bảng con `Delivery Confirmation Item`: lưu xác nhận giao nhận, người nhận, thời điểm và tệp bằng chứng. Mỗi điểm giao chỉ có một xác nhận đã Submit; mỗi dòng tham chiếu chính xác một dòng `Delivery Order Item` (hoặc `Delivery Note Item` ở luồng chứng từ cũ).
 - Validation phía máy chủ xác nhận điểm dừng thuộc chuyến, phiếu nguồn thuộc điểm dừng, số lượng không âm, cân bằng `phân giao = thực nhận + trả lại + còn chờ`, và tổng phân giao không vượt lượng phiếu xuất. Tác vụ đồng thời được tuần tự hóa bằng khóa dòng chuyến và dòng hàng.
 - Trả lại trong `Delivery Confirmation` chỉ là ghi nhận nghiệp vụ. Muốn nhập kho, phải tạo Delivery Note trả hàng bằng chức năng `Create > Return` của ERPNext và liên kết/đối chiếu với xác nhận.
 - `Vehicle Log.custom_delivery_trip` liên kết chi phí với chuyến. Tài xế chọn chuyến `In Transit`, nhập chi phí/chứng từ và gửi duyệt; Admin/Fleet Manager duyệt, trả bổ sung hoặc từ chối. Nhiên liệu dùng `fuel_qty`/`price`; phí đường, đỗ, sửa chữa khẩn cấp và khác có trường tiền/diễn giải riêng. Nhật ký được Submit sau khi Admin duyệt.
@@ -14,6 +14,14 @@ Phần này bổ sung vào app `dp_dispatch`, tương thích site ERPNext v16 đ
 - Kế hoạch `In Progress`/`Out of Service` cập nhật `Vehicle.custom_technical_status`; hoàn tất bảo trì chỉ trả xe về `Available` sau khi nghiệm thu và không còn kế hoạch đang giữ xe.
 
 Role `DP Driver` được app cấp quyền giới hạn theo tài xế cho chuyến, đơn giao, xác nhận và Vehicle Log. Tài khoản tài xế cần liên kết User → Employee → Driver và được gán role. Admin/System Manager hoặc Fleet Manager xử lý duyệt chi phí; Admin/System Manager duyệt kết thúc chuyến.
+
+## Quyết định luồng nghiệp vụ
+
+- Luồng giao thường dùng `Delivery Order` của `dp_dispatch`; không cần tạo `Sales Order`, `Delivery Note`, `Stock Entry` hoặc Warehouse chỉ để giao kiện. Nếu muốn báo giá, có thể đi `Quotation` → khách xác nhận → `Delivery Order`.
+- Khi Submit Delivery Order, app tạo/liên kết địa chỉ giao ERPNext để Delivery Stop có địa chỉ hợp lệ. Đơn được gắn vào một điểm dừng trên chuyến.
+- `Delivery Note` chỉ được hỗ trợ như nguồn tương thích với chứng từ cũ; không phải bước bắt buộc trong luồng mặc định.
+- Số lượng trả/hoàn trong Delivery Confirmation là ghi nhận giao nhận; không tự cộng tồn kho. Nếu cần nhập hàng trả về kho, phải làm chứng từ kho phù hợp riêng.
+- Cước thu khi giao là dữ liệu vận hành có người thu, thời điểm và phương thức; chưa tự sinh hóa đơn/kế toán. Cước vận chuyển khác với COD (tiền thu hộ giá trị hàng).
 
 ## Cập nhật lên site v16
 
@@ -30,19 +38,21 @@ Sau đó mở Desk, hard refresh (Ctrl+F5), tìm `Delivery Confirmation`, `Fleet
 
 ## Luồng thao tác demo
 
-### 1. Chuẩn bị hàng và phiếu xuất
+### 1. Tạo đơn vận chuyển
 
-1. Tạo hai Item demo, Warehouse thuộc công ty DP và nhập tồn bằng chứng từ ERPNext hợp lệ (ví dụ Stock Entry – Material Receipt). Không sửa tồn trực tiếp trong database.
-2. Tạo Customer; nếu dùng quy trình bán hàng thì tạo Sales Order trước.
-3. Tạo Delivery Note, chọn đúng Customer, Company, Warehouse và dòng hàng/số lượng; Submit phiếu.
-4. Mở chuyến Delivery Trip ở trạng thái còn chỉnh sửa, thêm Delivery Stop cho khách và gắn Delivery Note. Phối hợp thành viên 1 để họ kiểm tra rồi Submit chuyến.
+1. Tạo/chọn Customer và Item demo. Nếu cần báo giá, tạo Item Price phù hợp để Quotation lấy được đơn giá.
+2. Tạo `Delivery Order` trực tiếp hoặc tạo từ Quotation đã Submit và khách đã xác nhận đồng ý.
+3. Điền thông tin người gửi/nhận, số điện thoại, địa chỉ lấy/giao, thời gian yêu cầu, dòng hàng/mô tả, số lượng, đơn vị và khối lượng mỗi kiện. Nhập cước vận chuyển và bên trả cước.
+4. Save rồi Submit Delivery Order. App tạo/liên kết Address ERPNext từ địa chỉ giao; không cần tạo Warehouse hay nhập tồn chỉ để mô phỏng giao kiện.
+5. Mở Delivery Trip còn chỉnh sửa, thêm Delivery Stop và chọn đơn đã Submit. Khách hàng/địa chỉ tự điền; phối hợp điều phối kiểm tra tải trọng rồi Submit chuyến.
+6. Nếu demo chứng từ kho ERPNext cũ, có thể dùng `Delivery Note` đã Submit làm nguồn thay thế cho stop; đó là luồng tương thích, không phải luồng giao mặc định.
 
 ### 2. Xác nhận giao hàng
 
-1. Mở `Delivery Confirmation` > New; chọn Delivery Trip.
-2. Chọn Delivery Stop Row thuộc chuyến. `Source Delivery Note` tự điền theo điểm dừng.
+1. Mở `Delivery Confirmation` > New; chọn Delivery Trip được phân công.
+2. Chọn Delivery Stop của chuyến. Đơn giao và cước cần thu tự điền từ điểm dừng.
 3. Nhập thời điểm, người nhận và đính kèm ảnh/chứng từ nếu có.
-4. Trong bảng Confirmed Items, chọn đúng Delivery Note Item Row; Item và UOM tự hiện. Nhập lượng phân giao, thực nhận, trả lại và còn chờ.
+4. Bảng kết quả tự nạp các dòng `Delivery Order Item`; nhập lượng phân giao, thực nhận, trả lại và còn chờ. Với stop dùng chứng từ kho cũ, nguồn sẽ là `Delivery Note Item`.
 5. Ví dụ 10 thùng: phân giao 10, nhận 8, trả lại 2, còn chờ 0. Save rồi Submit.
 6. Nếu 2 thùng trả lại thật sự về kho, tạo Delivery Note Return từ phiếu gốc; xác nhận không tự cộng kho.
 7. Đánh dấu `Visited` trên Delivery Stop chỉ thể hiện xe đã ghé, không thay bằng chứng giao hàng.
@@ -69,7 +79,7 @@ Sau đó mở Desk, hard refresh (Ctrl+F5), tìm `Delivery Confirmation`, `Fleet
 |---|---|
 | Đủ số lượng và có bằng chứng | Lưu/Submit xác nhận được |
 | Chọn stop không thuộc trip | Backend từ chối |
-| Chọn dòng hàng không thuộc Delivery Note của stop | Backend từ chối |
+| Chọn dòng hàng không thuộc Delivery Order/Delivery Note của stop | Backend từ chối |
 | Số lượng âm hoặc phép cộng không cân | Backend từ chối |
 | Phân giao vượt lượng nguồn, kể cả xác nhận khác | Backend từ chối |
 | Tạo xác nhận thứ hai đã Submit cho cùng stop | Backend từ chối |
@@ -84,8 +94,10 @@ Các ca trên là tiêu chí kiểm tra; chưa chạy bộ test tự động tro
 
 ## API fields cho phần điều phối
 
-- `Delivery Trip`: `name`, `vehicle`, `driver`, `departure_time`, `custom_expected_end_time`, `custom_start_odometer`, `custom_end_odometer`, `custom_planned_load_kg`, `status`, `delivery_stops[].name`, `delivery_stops[].delivery_note`, `delivery_stops[].visited`.
-- `Delivery Confirmation`: `name`, `delivery_trip`, `delivery_stop`, `delivery_note`, `received_at`, `recipient`, `proof_file`, `items[].delivery_note_item`, `items[].item_code`, `items[].uom`, `items[].allocated_qty`, `items[].delivered_qty`, `items[].returned_qty`, `items[].pending_qty`, `docstatus`.
+- `Delivery Trip`: `name`, `vehicle`, `driver`, `departure_time`, `custom_expected_end_time`, `custom_start_odometer`, `custom_end_odometer`, `custom_planned_load_kg`, `status`, `delivery_stops[].name`, `delivery_stops[].custom_delivery_order`, `delivery_stops[].delivery_note`, `delivery_stops[].visited`.
+- `Delivery Stop`: `custom_delivery_order`, `delivery_note`, `customer`, `address`, `visited`.
+- `Delivery Order`: `name`, `customer`, `sender_name`, `sender_phone`, `pickup_address`, `recipient_name`, `recipient_phone`, `delivery_address`, `delivery_date`, `items[].item_code`, `items[].qty`, `items[].uom`, `items[].weight_kg`, `shipping_fee`, `fee_payer`, `delivery_status`.
+- `Delivery Confirmation`: `name`, `delivery_trip`, `delivery_stop`, `delivery_order` (hoặc `delivery_note` trong luồng cũ), `received_at`, `recipient`, `proof_file`, `items[].delivery_order_item_ref` (hoặc `delivery_note_item_ref`), `items[].uom`, `items[].allocated_qty`, `items[].delivered_qty`, `items[].returned_qty`, `items[].pending_qty`, `docstatus`.
 - `Vehicle`: `name`, `license_plate`, `custom_payload_capacity_kg`, `custom_technical_status`.
 - `Vehicle Log`: `name`, `license_plate`, `custom_delivery_trip`, `date`, `odometer`, `last_odometer`, `fuel_qty`, `price`, `invoice`, `service_detail[].service_item`, `service_detail[].expense_amount`.
 - `Fleet Maintenance Plan`: `name`, `vehicle`, `service_item`, `interval_km`, `interval_days`, `last_service_odometer`, `last_service_date`, `next_service_odometer`, `next_service_date`, `hold_start`, `hold_end`, `status`.
