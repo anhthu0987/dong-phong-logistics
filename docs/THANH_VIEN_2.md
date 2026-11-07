@@ -85,8 +85,9 @@ Kịch bản dưới đây chạy liền mạch qua bốn DocType trong phạm v
 8. Đăng nhập Admin/Fleet Manager, tìm danh sách Vehicle Log và mở bản ghi `Pending Review`.
 9. Đối chiếu chuyến, xe, số km, loại chi phí, phép tính nhiên liệu, diễn giải và chứng từ đính kèm.
 10. Nếu hợp lệ, bấm **Duyệt chi phí**; hệ thống chuyển trạng thái sang `Approved` và Submit nhật ký. Nếu thiếu chứng từ/thông tin, bấm **Trả lại bổ sung**, nhập ý kiến bắt buộc; tài xế sửa bản ghi `Needs Correction` rồi gửi duyệt lại. Nếu không chấp nhận, bấm **Từ chối** và ghi lý do.
-11. Chỉ sau khi đã ghi các chi phí trong chuyến, tài xế gửi yêu cầu kết thúc chuyến. Admin kiểm tra xác nhận giao hàng và xử lý yêu cầu kết thúc theo quy trình chuyến. Duyệt Vehicle Log là một luồng duyệt chi phí riêng; không trình bày như điều kiện tự động để hệ thống cho kết thúc chuyến.
-12. `Emergency Repair` trong Vehicle Log ghi nhận sự cố/khoản chi phát sinh. Nếu cần đưa xe vào quy trình sửa chữa và theo dõi ngày xe ngừng hoạt động, tiếp tục tạo/cập nhật Fleet Maintenance Plan và lập kết quả bảo trì; tránh ghi cùng một chi phí hai lần.
+11. Khi mọi điểm đã có xác nhận cuối, tài xế dùng **Gửi yêu cầu kết thúc chuyến** theo quy trình bình thường. Admin kiểm tra xác nhận giao hàng rồi duyệt hoàn tất. Duyệt Vehicle Log là luồng duyệt chi phí riêng, không tự kết thúc chuyến.
+12. Nếu tai nạn/xe hỏng khiến không thể đi tiếp và còn điểm chưa giao, tài xế bấm **Báo sự cố / nhờ Admin kết thúc**, ghi rõ sự cố và điểm chưa giao. Admin mở chuyến, kiểm tra báo cáo rồi bấm **Kết thúc chuyến do sự cố**. Hệ thống đóng chuyến với trạng thái `Exception Closed`, đánh dấu các điểm chưa có xác nhận là `Exception`, và trả các Delivery Order đó về `Pending Assignment` để điều phối sang chuyến khác. Điểm đã giao và xác nhận rồi vẫn giữ nguyên kết quả.
+13. `Emergency Repair` trong Vehicle Log ghi nhận sự cố/khoản chi phát sinh. Nếu cần đưa xe hỏng vào trạng thái không thể điều phối, Admin cập nhật kế hoạch bảo trì sang `Out of Service` hoặc `In Progress` và lập kết quả bảo trì sau sửa chữa; tránh ghi cùng một chi phí hai lần.
 
 ### Module 4 — Fleet Maintenance Record (Ghi nhận và nghiệm thu bảo dưỡng)
 
@@ -105,8 +106,8 @@ Kịch bản dưới đây chạy liền mạch qua bốn DocType trong phạm v
 2. Điều phối viên chuẩn bị và Submit Delivery Order/Delivery Trip cho xe demo. Tài xế đăng nhập, mở chuyến được giao và bắt đầu chuyến.
 3. Tài xế giao hàng, tạo và Submit Delivery Confirmation cho điểm dừng; xác nhận này là đầu vào giao nhận của chuyến.
 4. Trong chuyến, tài xế tạo Vehicle Log cho nhiên liệu và/hoặc phí đường, gửi Admin duyệt. Admin kiểm tra và duyệt hoặc trả bổ sung; trình bày trạng thái kết quả trên Vehicle Log.
-5. Tài xế gửi yêu cầu kết thúc chuyến; Admin rà xác nhận giao nhận rồi duyệt kết thúc chuyến. Không nhầm thao tác này với nút duyệt Vehicle Log.
-6. Nếu chuyến phát hiện xe đến hạn bảo dưỡng, Admin đưa Fleet Maintenance Plan sang `In Progress`, xác nhận xe bị giữ khỏi điều phối, đưa xe đi bảo dưỡng.
+5. Nếu chuyến bình thường, tài xế yêu cầu kết thúc và Admin duyệt sau khi rà xác nhận giao hàng. Nếu xe hỏng trước điểm 2, tài xế gửi báo cáo sự cố; Admin đóng chuyến theo diện sự cố. Kiểm tra điểm 2 thành `Exception` và đơn trở lại `Pending Assignment` để có thể phân cho chuyến mới.
+6. Admin đưa xe hỏng sang bảo trì `Out of Service`/`In Progress`, để xe không được điều phối trong thời gian sửa chữa.
 7. Admin lập Fleet Maintenance Record, đối chiếu kế hoạch, xe, hạng mục, số km và kết quả. Đánh dấu nghiệm thu, đính kèm chứng từ, Submit; mở lại kế hoạch và Vehicle để cho xem mốc bảo dưỡng mới, kế hoạch `Completed` và trạng thái xe.
 
 **Dữ liệu demo gợi ý:** xe `43C-123.45`; hạng mục `Bảo dưỡng định kỳ demo`; chu kỳ 5.000 km/180 ngày (đánh dấu giả định); mốc trước 45.000 km, mốc kế tiếp 50.000 km; chuyến demo có nhiên liệu 20 lít × 25.000 VND/lít và phí đường 50.000 VND. Điều chỉnh theo dữ liệu trên site; không nhập số km thấp hơn mốc xe thực tế.

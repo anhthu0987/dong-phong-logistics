@@ -86,10 +86,14 @@ frappe.ui.form.on("Delivery Trip", {
 					__("Chọn điểm giao"), __("Tiếp tục"));
 			});
 		}
-		if (isDriver && frm.doc.custom_started_at && !["Approved", "Requested"].includes(frm.doc.custom_completion_status)) {
+		const completionState = frm.doc.custom_completion_status || "Open";
+		if (isDriver && frm.doc.status === "In Transit" && frm.doc.custom_started_at && !["Approved", "Requested", "Exception Requested", "Exception Closed"].includes(completionState)) {
 			frm.add_custom_button(__("Gửi yêu cầu kết thúc chuyến"), () => frappe.confirm(
 				__("Gửi cho Admin duyệt? Mỗi điểm phải có xác nhận giao nhận, không còn hàng chờ và đã thu đủ phí."),
 				() => run("request_completion")));
+			frm.add_custom_button(__("Báo sự cố / nhờ Admin kết thúc"), () => frappe.prompt(
+				[{ fieldname: "note", label: __("Mô tả sự cố và điểm chưa thể giao"), fieldtype: "Small Text", reqd: 1 }],
+				values => run("request_incident_closure", values), __("Báo sự cố chuyến"), __("Gửi Admin")));
 		}
 		if (isAdmin && frm.doc.custom_completion_status === "Requested") {
 			frm.add_custom_button(__("Từ chối yêu cầu"), () => frappe.prompt(
@@ -98,6 +102,11 @@ frappe.ui.form.on("Delivery Trip", {
 			frm.add_custom_button(__("Duyệt hoàn tất chuyến"), () => frappe.prompt(
 				[{ fieldname: "note", label: __("Ghi chú duyệt"), fieldtype: "Small Text" }],
 				values => run("approve_completion", values), __("Duyệt hoàn tất"), __("Xác nhận")));
+		}
+		if (isAdmin && frm.doc.custom_completion_status === "Exception Requested") {
+			frm.add_custom_button(__("Kết thúc chuyến do sự cố"), () => frappe.prompt(
+				[{ fieldname: "note", label: __("Ghi chú xử lý của Admin"), fieldtype: "Small Text" }],
+				values => run("close_trip_for_incident", values), __("Đóng chuyến do sự cố"), __("Xác nhận đóng")));
 		}
 	},
 	vehicle(frm) {

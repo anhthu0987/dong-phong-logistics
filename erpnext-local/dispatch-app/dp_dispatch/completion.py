@@ -121,6 +121,8 @@ def request_completion(trip):
 	ensure_assigned(doc)
 	if doc.docstatus != 1 or doc.status == "Completed" or doc.get("custom_completed_at"):
 		frappe.throw("Chuyến không ở trạng thái có thể yêu cầu hoàn tất.")
+	if doc.get("custom_completion_status") == "Exception Requested":
+		frappe.throw("Chuyến đang chờ Admin xử lý yêu cầu kết thúc do sự cố.")
 	if is_driver() and not doc.get("custom_started_at"):
 		frappe.throw("Cần bắt đầu chuyến trước khi yêu cầu kết thúc.")
 	validate_all_stops(doc)
@@ -163,4 +165,58 @@ def reject_completion(trip, note):
 	doc.custom_completion_review_note = note
 	save_action(doc)
 	doc.add_comment("Info", "Từ chối hoàn tất chuyến: " + note)
+	return doc.custom_completion_status
+
+
+@frappe.whitelist(methods=["POST"])
+def request_incident_closure(trip, note):
+	if not is_driver():
+		frappe.throw("Chỉ tài xế được phân công mới gửi báo cáo sự cố kết thúc chuyến.", frappe.PermissionError)
+	if not (note or "").strip():
+		frappe.throw("Nhập mô tả sự cố để Admin xem xét.")
+	doc = lock_trip(trip)
+	ensure_assigned(doc)
+	doc.check_permission("read")
+	if doc.docstatus != 1 or doc.status != "In Transit" or not doc.get("custom_started_at") or doc.get("custom_completed_at"):
+		frappe.throw("Chỉ gửi báo cáo sự cố cho chuyến đã bắt đầu và đang vận chuyển.")
+	if doc.get("custom_completion_status") in ("Requested", "Approved", "Exception Requested", "Exception Closed"):
+		frappe.throw("Chuyến đã có yêu cầu kết thúc hoặc đã được xử lý.")
+	unserved = [stop for stop in doc.delivery_stops if not submitted_confirmations(doc, stop)]
+	if not unserved:
+		frappe.throw("Tất cả điểm giao đã có xác nhận cuối. Hãy dùng luồng kết thúc chuyến thông thường.")
+	doc.custom_completion_status = "Exception Requested"
+	doc.custom_completion_requested_at = now_datetime()
+	doc.custom_completion_requested_by = frappe.session.user
+	doc.custom_completion_review_note = (note or "").strip()
+	save_action(doc)
+	doc.add_comment("Info", "Tài xế báo sự cố và đề nghị Admin kết thúc chuyến: " + doc.custom_completion_review_note)
+	return doc.custom_completion_status
+
+
+@frappe.whitelist(methods=["POST"])
+def close_trip_for_incident(trip, note=None):
+	frappe.only_for("System Manager")
+	doc = lock_trip(trip)
+	if doc.docstatus != 1 or doc.status != "In Transit" or doc.get("custom_completion_status") != "Exception Requested":
+		frappe.throw("Chỉ đóng chuyến đang vận chuyển và có báo cáo sự cố chờ Admin xử lý.")
+	if not (doc.get("custom_completion_review_note") or "").strip():
+		frappe.throw("Chuyến cần có lý do sự cố do tài xế báo trước khi đóng.")
+	unserved = [stop for stop in doc.delivery_stops if not submitted_confirmations(doc, stop)]
+	if not unserved:
+		frappe.throw("Không còn điểm giao chưa xác nhận; hãy xử lý theo luồng kết thúc chuyến thông thường.")
+	for stop in unserved:
+		stop.custom_delivery_state = "Exception"
+	incident = doc.custom_completion_review_note.strip()
+	admin_note = (note or "").strip()
+	doc.custom_completion_status = "Exception Closed"
+	doc.custom_completed_at = now_datetime()
+	doc.custom_completed_by = frappe.session.user
+	doc.custom_completion_review_note = "Sự cố tài xế báo: " + incident
+	if admin_note:
+		doc.custom_completion_review_note += "\nAdmin đóng chuyến: " + admin_note
+	save_action(doc, status_after_save="Completed")
+	for stop in unserved:
+		if stop.get("custom_delivery_order"):
+			frappe.db.set_value("Delivery Order", stop.custom_delivery_order, "delivery_status", "Pending Assignment", update_modified=True)
+	doc.add_comment("Info", "Admin đóng chuyến do sự cố. Các đơn chưa giao đã được trả về chờ điều phối lại.")
 	return doc.custom_completion_status

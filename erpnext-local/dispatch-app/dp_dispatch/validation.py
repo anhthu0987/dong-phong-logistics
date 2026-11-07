@@ -66,8 +66,8 @@ def apply_delivery_order_totals(doc, method=None):
 def validate_trip(doc, method=None):
     if doc.docstatus==2: return
     old=doc.get_doc_before_save()
-    if doc.status=='Completed' and (not doc.get('custom_completed_at') or doc.get('custom_completion_status')!='Approved'):
-        fail('DP_COMPLETION_APPROVAL','Chuyến chỉ được đánh dấu hoàn tất sau khi Admin duyệt.')
+    if doc.status=='Completed' and (not doc.get('custom_completed_at') or doc.get('custom_completion_status') not in ('Approved','Exception Closed')):
+        fail('DP_COMPLETION_APPROVAL','Chuyến chỉ được đánh dấu hoàn tất sau khi Admin duyệt hoàn tất hoặc đóng theo diện sự cố.')
     if old:
         for field in ('custom_completion_status','custom_completion_requested_at','custom_completion_requested_by','custom_completed_at','custom_completed_by','custom_completion_review_note'):
             if (doc.get(field) or None)!=(old.get(field) or None) and frappe.flags.get('dp_trip_action')!=doc.name:

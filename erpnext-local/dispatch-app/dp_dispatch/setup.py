@@ -18,7 +18,7 @@ def install():
             dict(fieldname='custom_total_delivery_qty',label='Tổng số lượng cần giao',fieldtype='Data',read_only=1,allow_on_submit=1,insert_after='custom_vehicle_capacity_kg'),
             dict(fieldname='custom_started_at',label='Actual Start Time',fieldtype='Datetime',read_only=1,allow_on_submit=1,insert_after='custom_total_delivery_qty'),
             dict(fieldname='custom_started_by',label='Started By',fieldtype='Link',options='User',read_only=1,allow_on_submit=1,insert_after='custom_started_at'),
-            dict(fieldname='custom_completion_status',label='Trip Completion Approval',fieldtype='Select',options='Open\nRequested\nApproved\nRejected',default='Open',read_only=1,allow_on_submit=1,insert_after='custom_vehicle_capacity_kg'),
+            dict(fieldname='custom_completion_status',label='Trip Completion Approval',fieldtype='Select',options='Open\nRequested\nApproved\nRejected\nException Requested\nException Closed',default='Open',read_only=1,allow_on_submit=1,insert_after='custom_vehicle_capacity_kg'),
             dict(fieldname='custom_completion_requested_at',label='Completion Requested At',fieldtype='Datetime',read_only=1,allow_on_submit=1,insert_after='custom_completion_status'),
             dict(fieldname='custom_completion_requested_by',label='Completion Requested By',fieldtype='Link',options='User',read_only=1,allow_on_submit=1,insert_after='custom_completion_requested_at'),
             dict(fieldname='custom_completion_review_note',label='Completion Review Note',fieldtype='Small Text',read_only=1,allow_on_submit=1,insert_after='custom_completion_requested_by'),
