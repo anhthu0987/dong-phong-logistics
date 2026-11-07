@@ -47,6 +47,17 @@ def vehicle_log_query(user=None):
 	return "`tabVehicle Log`.`owner` = " + frappe.db.escape(user)
 
 
+def vehicle_query(user=None):
+	user = user or frappe.session.user
+	if not is_driver(user):
+		return ""
+	driver = driver_for_user(user)
+	if not driver:
+		return "1=0"
+	return ("`tabVehicle`.`name` in (select vehicle from `tabDelivery Trip` "
+		"where driver=" + frappe.db.escape(driver) + " and docstatus=1 and vehicle is not null)")
+
+
 def has_trip_permission(doc, user=None, permission_type=None):
 	user = user or frappe.session.user
 	if not is_driver(user):
@@ -98,6 +109,22 @@ def has_vehicle_log_permission(doc, user=None, permission_type=None):
 	return False
 
 
+def has_vehicle_permission(doc, user=None, permission_type=None):
+	user = user or frappe.session.user
+	if not is_driver(user):
+		return None
+	if permission_type not in ("read", "select", None):
+		return False
+	driver = driver_for_user(user)
+	if not driver or not doc.name:
+		return False
+	return bool(frappe.db.exists("Delivery Trip", {
+		"driver": driver,
+		"vehicle": doc.name,
+		"docstatus": 1,
+	}))
+
+
 def install_permissions():
 	from frappe.permissions import add_permission, update_permission_property
 	if not frappe.db.exists("Role", DRIVER_ROLE):
@@ -107,6 +134,7 @@ def install_permissions():
 		"Delivery Order": ("read", "select"),
 		"Delivery Confirmation": ("read", "select", "create", "write", "submit"),
 		"Vehicle Log": ("read", "select", "create", "write"),
+		"Vehicle": ("read", "select"),
 	}
 	for doctype, permissions in rights.items():
 		if not frappe.db.exists("DocType", doctype):

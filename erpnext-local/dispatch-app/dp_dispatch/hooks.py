@@ -18,12 +18,14 @@ doctype_js = {
 
 permission_query_conditions = {
 	'Vehicle Log': 'dp_dispatch.permissions.vehicle_log_query',
+	'Vehicle': 'dp_dispatch.permissions.vehicle_query',
     'Delivery Trip': 'dp_dispatch.permissions.trip_query',
     'Delivery Confirmation': 'dp_dispatch.permissions.confirmation_query',
     'Delivery Order': 'dp_dispatch.permissions.delivery_order_query',
 }
 has_permission = {
 	'Vehicle Log': 'dp_dispatch.permissions.has_vehicle_log_permission',
+	'Vehicle': 'dp_dispatch.permissions.has_vehicle_permission',
     'Delivery Trip': 'dp_dispatch.permissions.has_trip_permission',
     'Delivery Confirmation': 'dp_dispatch.permissions.has_confirmation_permission',
     'Delivery Order': 'dp_dispatch.permissions.has_delivery_order_permission',

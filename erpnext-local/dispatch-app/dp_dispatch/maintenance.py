@@ -140,7 +140,8 @@ def review_vehicle_log(name, action, note=None):
     if action == "Approve":
         doc.custom_approval_status = "Approved"
         doc.flags.dp_vehicle_log_approval = True
-        doc.submit(ignore_permissions=True)
+        doc.flags.ignore_permissions = True
+        doc.submit()
         doc.add_comment("Info", "Admin/Fleet Manager đã duyệt chi phí Vehicle Log.")
     else:
         doc.custom_approval_status = "Needs Correction" if action == "Return" else "Rejected"
