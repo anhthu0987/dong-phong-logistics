@@ -1,0 +1,29 @@
+{
+  "doctype": "DocType",
+  "name": "Fleet Maintenance Plan",
+  "module": "DP Dispatch",
+  "autoname": "naming_series:",
+  "naming_rule": "By Naming Series field",
+  "naming_series": "DP-MP-.YYYY.-",
+  "track_changes": 1,
+  "fields": [
+    {"fieldname":"naming_series","label":"Series","fieldtype":"Select","options":"DP-MP-.YYYY.-","default":"DP-MP-.YYYY.-","reqd":1,"hidden":1},
+    {"fieldname":"vehicle","label":"Xe","fieldtype":"Link","options":"Vehicle","reqd":1,"in_list_view":1},
+    {"fieldname":"service_item","label":"Hạng mục bảo dưỡng","fieldtype":"Link","options":"Vehicle Service Item","reqd":1,"in_list_view":1},
+    {"fieldname":"interval_km","label":"Chu kỳ bảo dưỡng (km)","fieldtype":"Int","default":0,"non_negative":1,"description":"Đến số km này thì cần thực hiện bảo dưỡng."},
+    {"fieldname":"interval_days","label":"Chu kỳ bảo dưỡng (ngày)","fieldtype":"Int","default":0,"non_negative":1,"description":"Số ngày tối đa giữa hai lần bảo dưỡng."},
+    {"fieldname":"last_service_odometer","label":"Số km lần bảo dưỡng gần nhất","fieldtype":"Int","non_negative":1},
+    {"fieldname":"last_service_date","label":"Ngày bảo dưỡng gần nhất","fieldtype":"Date"},
+    {"fieldname":"next_service_odometer","label":"Số km đến kỳ bảo dưỡng tiếp theo","fieldtype":"Int","non_negative":1},
+    {"fieldname":"next_service_date","label":"Ngày đến kỳ bảo dưỡng tiếp theo","fieldtype":"Date"},
+    {"fieldname":"hold_start","label":"Ngày bắt đầu ngừng xe","fieldtype":"Date"},
+    {"fieldname":"hold_end","label":"Ngày dự kiến xe hoạt động lại","fieldtype":"Date"},
+    {"fieldname":"status","label":"Trạng thái kế hoạch","fieldtype":"Select","options":"Planned\nIn Progress\nOut of Service\nCompleted\nCancelled","default":"Planned","reqd":1,"in_list_view":1},
+    {"fieldname":"demo_assumption","label":"Dữ liệu giả định cho demo","fieldtype":"Check","default":0},
+    {"fieldname":"notes","label":"Ghi chú","fieldtype":"Small Text"}
+  ],
+  "permissions": [{"role":"System Manager","read":1,"write":1,"create":1,"delete":1}],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "engine": "InnoDB"
+}

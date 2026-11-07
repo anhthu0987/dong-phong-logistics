@@ -1,8 +1,12 @@
 .env
 .env.*
 !.env.example
+!.env-v16.example
+**/.env-v16
+**/.env-v16.*
 **/TAI_KHOAN.txt
 **/backups/
+**/backups-v16/
 **/sites/
 **/frappe_docker/
 *.log

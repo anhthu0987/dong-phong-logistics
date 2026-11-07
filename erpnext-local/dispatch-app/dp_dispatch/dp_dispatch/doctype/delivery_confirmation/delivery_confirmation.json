@@ -1,0 +1,28 @@
+{
+  "doctype": "DocType",
+  "name": "Delivery Confirmation",
+  "module": "DP Dispatch",
+  "autoname": "naming_series:",
+  "naming_rule": "By Naming Series field",
+  "naming_series": "DP-DC-.YYYY.-",
+  "is_submittable": 1,
+  "track_changes": 1,
+  "fields": [
+    {"fieldname":"naming_series","label":"Series","fieldtype":"Select","options":"DP-DC-.YYYY.-","default":"DP-DC-.YYYY.-","reqd":1,"hidden":1},
+    {"fieldname":"delivery_trip","label":"Chuyến vận chuyển","fieldtype":"Link","options":"Delivery Trip","reqd":1,"in_list_view":1},
+    {"fieldname":"delivery_stop","label":"Điểm giao","fieldtype":"Data","read_only":1,"description":"Chọn điểm giao từ danh sách sau khi chọn chuyến. Hệ thống tự lưu mã dòng, không cần nhập mã thủ công."},
+    {"fieldname":"delivery_note","label":"Phiếu xuất kho nguồn (luồng cũ)","fieldtype":"Link","options":"Delivery Note","read_only":1,"hidden":1,"description":"Chỉ dùng để xem các xác nhận giao hàng cũ."},
+    {"fieldname":"received_at","label":"Thời điểm giao/nhận","fieldtype":"Datetime","reqd":1,"description":"Thời điểm người nhận thực tế nhận hàng."},
+    {"fieldname":"recipient","label":"Người nhận hàng","fieldtype":"Data","reqd":1},
+    {"fieldname":"proof_file","label":"Ảnh/chứng từ giao hàng","fieldtype":"Attach","description":"Đính kèm ảnh hoặc chứng từ giao nhận nếu có."},
+    {"fieldname":"items","label":"Kết quả hàng hóa","fieldtype":"Table","options":"Delivery Confirmation Item","reqd":1},
+    {"fieldname":"notes","label":"Ghi chú giao nhận","fieldtype":"Small Text"}
+  ],
+  "permissions": [
+    {"role":"System Manager","read":1,"write":1,"create":1,"delete":1,"submit":1,"cancel":1,"amend":1},
+    {"role":"Fleet Manager","read":1,"write":1,"create":1,"submit":1}
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "engine": "InnoDB"
+}

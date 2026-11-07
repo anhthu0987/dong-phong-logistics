@@ -1,0 +1,15 @@
+{
+  "doctype":"DocType",
+  "name":"Delivery Order Item",
+  "module":"DP Dispatch",
+  "istable":1,
+  "editable_grid":1,
+  "fields":[
+    {"fieldname":"item_code","label":"Mã mặt hàng (nếu có)","fieldtype":"Link","options":"Item","in_list_view":1},
+    {"fieldname":"description","label":"Mô tả hàng hóa","fieldtype":"Data","in_list_view":1},
+    {"fieldname":"qty","label":"Số lượng","fieldtype":"Float","reqd":1,"non_negative":1,"in_list_view":1},
+    {"fieldname":"uom","label":"Đơn vị tính","fieldtype":"Data","default":"kiện","reqd":1,"in_list_view":1},
+    {"fieldname":"weight_kg","label":"Khối lượng mỗi đơn vị (kg)","fieldtype":"Float","default":0,"non_negative":1,"reqd":1,"in_list_view":1}
+  ],
+  "permissions":[]
+}

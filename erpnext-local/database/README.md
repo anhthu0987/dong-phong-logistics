@@ -1,5 +1,7 @@
 # Database – nhiệm vụ thành viên 1
 
+> Tài liệu này mô tả bộ cài schema và dữ liệu demo cũ dành cho site v15. Code vận hành hiện tại đã mở rộng; xem [DOC_README](../../docs/DOC_README.md) để đọc schema/feature/API đang tích hợp và [COMMAND_README](../../docs/COMMAND_README.md) để chọn đúng lệnh theo phiên bản. Không chạy bộ cài v15 trên site v16.
+
 Doanh nghiệp: Công ty Phân phối Đông Phong (DP).
 
 ## Đã triển khai

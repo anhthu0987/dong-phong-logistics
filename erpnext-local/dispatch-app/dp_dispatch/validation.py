@@ -25,8 +25,58 @@ def validate_odometer(doc, method=None):
     if end and end<start:
         fail('DP_ODOMETER','Số km cuối chuyến phải lớn hơn hoặc bằng số km đầu chuyến.')
 
+def apply_delivery_order_totals(doc, method=None):
+    assigned = [row.get('custom_delivery_order') for row in doc.delivery_stops if row.get('custom_delivery_order')]
+    if len(assigned) != len(set(assigned)):
+        fail('DP_DUPLICATE_ORDER','Không gắn cùng một đơn giao hai lần trong một chuyến.')
+    total_weight = 0
+    quantities = {}
+    for stop in doc.delivery_stops:
+        order_name=stop.get('custom_delivery_order')
+        if not order_name:
+            continue
+        order = frappe.get_doc('Delivery Order', order_name)
+        if order.docstatus != 1:
+            fail('DP_ORDER_DRAFT','Chỉ phân đơn giao đã được xác nhận.')
+        if not order.shipping_address:
+            fail('DP_ORDER_ADDRESS','Đơn giao chưa có địa chỉ nhận được tạo. Hãy mở và Submit lại đơn.')
+        stop.customer=order.customer
+        stop.address=order.shipping_address
+        stop.customer_address=order.delivery_address
+        other_trip = frappe.db.sql('''SELECT trip.name FROM `tabDelivery Trip` trip
+            INNER JOIN `tabDelivery Stop` stop ON stop.parent=trip.name
+            WHERE stop.custom_delivery_order=%s AND trip.name!=%s AND trip.docstatus=1
+            AND trip.status IN ('Scheduled','In Transit') LIMIT 1''',(order_name,doc.name or ''),as_dict=True)
+        if other_trip:
+            fail('DP_ORDER_ASSIGNED',f'Đơn {order_name} đã thuộc chuyến {other_trip[0].name}.')
+        for item in order.items:
+            total_weight += flt(item.qty) * flt(item.weight_kg)
+            unit = item.uom or 'kiện'
+            quantities[unit] = quantities.get(unit, 0) + flt(item.qty)
+        if (doc.docstatus==1 or method=='before_submit') and order.delivery_status in ('Draft','Pending Assignment'):
+            frappe.db.set_value('Delivery Order',order_name,'delivery_status','Assigned',update_modified=False)
+    if assigned:
+        if total_weight <= 0:
+            fail('DP_ORDER_WEIGHT','Các đơn được phân phải có khối lượng hàng hợp lệ.')
+        doc.custom_planned_load_kg = total_weight
+        doc.custom_total_delivery_qty = ' + '.join(f'{qty:g} {unit}' for unit,qty in sorted(quantities.items()))
+    else:
+        doc.custom_total_delivery_qty = None
+
 def validate_trip(doc, method=None):
     if doc.docstatus==2: return
+    old=doc.get_doc_before_save()
+    if doc.status=='Completed' and (not doc.get('custom_completed_at') or doc.get('custom_completion_status')!='Approved'):
+        fail('DP_COMPLETION_APPROVAL','Chuyến chỉ được đánh dấu hoàn tất sau khi Admin duyệt.')
+    if old:
+        for field in ('custom_completion_status','custom_completion_requested_at','custom_completion_requested_by','custom_completed_at','custom_completed_by','custom_completion_review_note'):
+            if (doc.get(field) or None)!=(old.get(field) or None) and frappe.flags.get('dp_trip_action')!=doc.name:
+                fail('DP_COMPLETION_APPROVAL','Dùng nút yêu cầu/duyệt hoàn tất chuyến để thay đổi trạng thái kết thúc.')
+        if doc.status=='Completed' and old.status!='Completed' and frappe.flags.get('dp_trip_action')!=doc.name:
+            fail('DP_COMPLETION_APPROVAL','Chuyến chỉ được chuyển Completed sau khi quản trị viên duyệt.')
+    elif (doc.get('custom_completed_at') or doc.get('custom_completion_requested_at') or doc.get('custom_completion_status') not in (None,'','Open')) and frappe.flags.get('dp_trip_action')!=doc.name:
+        fail('DP_COMPLETION_APPROVAL','Không được tự đặt trạng thái duyệt khi tạo chuyến.')
+    apply_delivery_order_totals(doc,method)
     validate_odometer(doc)
     load=number(doc.get('custom_planned_load_kg'),'Khối lượng dự kiến')
     start=get_datetime(doc.departure_time) if doc.departure_time else None
@@ -40,6 +90,7 @@ def validate_trip(doc, method=None):
     vehicles=frappe.db.sql('SELECT name, custom_technical_status, custom_payload_capacity_kg FROM `tabVehicle` WHERE name=%s FOR UPDATE',doc.vehicle,as_dict=True)
     if not vehicles: fail('DP_VEHICLE','Xe không tồn tại.')
     vehicle=vehicles[0]
+    doc.custom_vehicle_capacity_kg=flt(vehicle.custom_payload_capacity_kg)
     if vehicle.custom_technical_status not in (None,'','Available'):
         fail('DP_UNAVAILABLE','Xe đang bảo trì hoặc ngừng hoạt động, không thể phân công.')
     if submitting and vehicle.custom_technical_status!='Available':

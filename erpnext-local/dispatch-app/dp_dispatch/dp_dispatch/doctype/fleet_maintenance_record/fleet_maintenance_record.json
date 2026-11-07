@@ -1,0 +1,28 @@
+{
+  "doctype": "DocType",
+  "name": "Fleet Maintenance Record",
+  "module": "DP Dispatch",
+  "autoname": "naming_series:",
+  "naming_rule": "By Naming Series field",
+  "naming_series": "DP-MR-.YYYY.-",
+  "is_submittable": 1,
+  "track_changes": 1,
+  "fields": [
+    {"fieldname":"naming_series","label":"Series","fieldtype":"Select","options":"DP-MR-.YYYY.-","default":"DP-MR-.YYYY.-","reqd":1,"hidden":1},
+    {"fieldname":"maintenance_plan","label":"Kế hoạch bảo dưỡng","fieldtype":"Link","options":"Fleet Maintenance Plan","reqd":1,"in_list_view":1},
+    {"fieldname":"vehicle","label":"Xe","fieldtype":"Link","options":"Vehicle","reqd":1,"in_list_view":1},
+    {"fieldname":"service_item","label":"Hạng mục bảo dưỡng","fieldtype":"Link","options":"Vehicle Service Item","reqd":1,"in_list_view":1},
+    {"fieldname":"vehicle_log","label":"Nhật ký xe tham chiếu chi phí","fieldtype":"Link","options":"Vehicle Log","description":"Liên kết chi phí đã ghi ở Nhật ký xe để tránh ghi trùng."},
+    {"fieldname":"work_date","label":"Ngày thực hiện bảo dưỡng","fieldtype":"Date","reqd":1},
+    {"fieldname":"odometer","label":"Số km khi nghiệm thu","fieldtype":"Int","reqd":1,"non_negative":1},
+    {"fieldname":"hold_start","label":"Ngày bắt đầu ngừng xe","fieldtype":"Date"},
+    {"fieldname":"hold_end","label":"Ngày xe hoạt động lại","fieldtype":"Date"},
+    {"fieldname":"accepted","label":"Đã nghiệm thu","fieldtype":"Check","default":0,"reqd":1,"description":"Chỉ đánh dấu sau khi kiểm tra và chấp nhận kết quả bảo dưỡng."},
+    {"fieldname":"acceptance_proof","label":"Ảnh/chứng từ nghiệm thu","fieldtype":"Attach"},
+    {"fieldname":"notes","label":"Nội dung thực hiện và ghi chú nghiệm thu","fieldtype":"Small Text"}
+  ],
+  "permissions": [{"role":"System Manager","read":1,"write":1,"create":1,"delete":1,"submit":1,"cancel":1,"amend":1}],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "engine": "InnoDB"
+}

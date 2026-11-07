@@ -1,0 +1,18 @@
+{
+  "doctype": "DocType",
+  "name": "Delivery Confirmation Item",
+  "module": "DP Dispatch",
+  "istable": 1,
+  "editable_grid": 1,
+  "fields": [
+    {"fieldname":"delivery_note_item","label":"Dòng hàng phiếu xuất kho","fieldtype":"Link","options":"Delivery Note Item","hidden":1},
+    {"fieldname":"delivery_note_item_ref","label":"Mã dòng hàng phiếu xuất kho","fieldtype":"Data","hidden":1,"description":"Mã kỹ thuật để đối chiếu dữ liệu hàng nguồn."},
+    {"fieldname":"item_code","label":"Mã mặt hàng","fieldtype":"Link","options":"Item","read_only":1,"hidden":1},
+    {"fieldname":"uom","label":"Đơn vị tính","fieldtype":"Data","read_only":1,"in_list_view":1},
+    {"fieldname":"allocated_qty","label":"Số lượng phân giao","fieldtype":"Float","reqd":1,"in_list_view":1,"non_negative":1},
+    {"fieldname":"delivered_qty","label":"Số lượng đã giao","fieldtype":"Float","reqd":1,"in_list_view":1,"non_negative":1},
+    {"fieldname":"returned_qty","label":"Số lượng hoàn/trả","fieldtype":"Float","default":0,"reqd":1,"non_negative":1,"in_list_view":1},
+    {"fieldname":"pending_qty","label":"Số lượng còn chờ","fieldtype":"Float","default":0,"reqd":1,"non_negative":1,"in_list_view":1}
+  ],
+  "permissions": []
+}

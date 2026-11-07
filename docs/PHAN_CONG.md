@@ -1,5 +1,7 @@
 # Hướng dẫn triển khai – thành viên 2 và 3
 
+> Đây là tài liệu phân công/đề xuất ban đầu. Trạng thái tích hợp hiện tại đã thay đổi; dùng [DOC_README](DOC_README.md) làm nguồn mô tả code hiện có và [COMMAND_README](COMMAND_README.md) cho các lệnh cài/chạy.
+
 **Đề tài:** Quản trị và điều phối Logistics & Vận tải liên vùng.  
 **Doanh nghiệp mô phỏng:** Công ty Phân phối Đông Phong (DP).  
 **Phạm vi:** Mô phỏng giữa kỳ trên ERPNext; GPS dùng tọa độ giả lập, không cần phần cứng.
