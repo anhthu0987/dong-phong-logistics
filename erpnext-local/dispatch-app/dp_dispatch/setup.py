@@ -70,6 +70,8 @@ def install():
             dict(fieldname='description',label='Mô tả hàng',fieldtype='Data',read_only=1,in_list_view=1),
         ],
     },update=True)
+    from dp_dispatch.transport import install_schema
+    install_schema()
     sync_existing_quotation_delivery_order_links()
     from dp_dispatch.permissions import install_permissions
     install_permissions()

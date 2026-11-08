@@ -36,9 +36,13 @@ doc_events = {
 		'validate': 'dp_dispatch.sales.prevent_unaccepting_quotation_with_order',
 	},
 	'Delivery Order': {
+        'validate': 'dp_dispatch.transport.validate_order',
+        'before_cancel': 'dp_dispatch.transport.before_cancel_order',
         'on_submit': 'dp_dispatch.delivery_confirmation.on_submit_order',
     },
     'Delivery Trip': {
+        'before_cancel': 'dp_dispatch.transport.before_cancel_trip',
+        'on_cancel': 'dp_dispatch.transport.on_cancel_trip',
         'validate': 'dp_dispatch.validation.validate_trip',
         'before_submit': 'dp_dispatch.validation.validate_trip',
         'before_update_after_submit': 'dp_dispatch.validation.validate_odometer',

@@ -26,6 +26,9 @@ def validate_odometer(doc, method=None):
         fail('DP_ODOMETER','Số km cuối chuyến phải lớn hơn hoặc bằng số km đầu chuyến.')
 
 def apply_delivery_order_totals(doc, method=None):
+    from dp_dispatch.transport import enabled, plan_trip
+    if enabled(doc):
+        return plan_trip(doc, method)
     assigned = [row.get('custom_delivery_order') for row in doc.delivery_stops if row.get('custom_delivery_order')]
     if len(assigned) != len(set(assigned)):
         fail('DP_DUPLICATE_ORDER','Không gắn cùng một đơn giao hai lần trong một chuyến.')

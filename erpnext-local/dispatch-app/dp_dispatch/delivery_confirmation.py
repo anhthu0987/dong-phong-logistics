@@ -12,7 +12,7 @@ def get_trip_stops(delivery_trip):
 	ensure_assigned(trip)
 	return [{
 		"value": row.name,
-		"label": f"{row.idx}. {row.customer or 'Khách chưa xác định'} — {row.customer_address or row.address or 'Chưa có địa chỉ'} ({row.get('custom_delivery_order') or row.get('delivery_note') or 'Chưa gắn đơn'})",
+		"label": f"{row.idx}. { {'Pickup': 'Lấy hàng', 'Delivery': 'Giao hàng', 'Return': 'Trả người gửi'}.get(row.get('custom_stop_type'), 'Giao hàng')} — {row.customer or 'Khách chưa xác định'} — {row.customer_address or row.address or 'Chưa có địa chỉ'} ({row.get('custom_delivery_order') or row.get('delivery_note') or 'Chưa gắn đơn'})",
 	} for row in trip.delivery_stops]
 
 
@@ -28,6 +28,11 @@ def get_stop_details(delivery_trip, delivery_stop):
 		frappe.throw("Điểm giao không thuộc chuyến đã chọn.", frappe.PermissionError)
 	order_name = stop.get("custom_delivery_order")
 	items = []
+	from dp_dispatch import transport
+	if transport.enabled(trip):
+		order, items = transport.source_items(trip, stop)
+		return {'delivery_order': order.name, 'items': items, 'operation': stop.custom_stop_type,
+		        'shipping_fee': order.shipping_fee if stop.custom_stop_type == 'Delivery' else 0}
 	if order_name:
 		order = frappe.get_doc("Delivery Order", order_name)
 		for row in order.items:
@@ -65,6 +70,9 @@ def fail(code, message):
 def validate_confirmation(doc, method=None):
 	frappe.db.sql("SELECT name FROM `tabDelivery Trip` WHERE name=%s FOR UPDATE", doc.delivery_trip)
 	trip = frappe.get_doc("Delivery Trip", doc.delivery_trip)
+	from dp_dispatch import transport
+	if transport.enabled(trip):
+		return transport.validate_confirmation(doc, trip)
 	if trip.docstatus != 1:
 		fail("DPOD_TRIP", "Chỉ xác nhận giao nhận cho chuyến đã được điều phối và Submit.")
 	if trip.get("custom_completed_at"):
@@ -217,6 +225,10 @@ def _rollup_order(order_name):
 
 
 def on_submit_confirmation(doc, method=None):
+	from dp_dispatch import transport
+	trip = frappe.get_doc('Delivery Trip', doc.delivery_trip)
+	if transport.enabled(trip):
+		return transport.on_submit_confirmation(doc, trip)
 	if doc.delivery_order:
 		_rollup_order(doc.delivery_order)
 	stop = frappe.get_doc("Delivery Stop", doc.delivery_stop)
@@ -235,6 +247,10 @@ def on_submit_confirmation(doc, method=None):
 
 
 def on_cancel_confirmation(doc, method=None):
+	from dp_dispatch import transport
+	trip = frappe.get_doc('Delivery Trip', doc.delivery_trip)
+	if transport.enabled(trip):
+		return transport.on_cancel(doc, trip)
 	if doc.delivery_order:
 		_rollup_order(doc.delivery_order)
 		trip = frappe.get_doc("Delivery Trip", doc.delivery_trip)
@@ -248,9 +264,21 @@ def before_cancel_confirmation(doc, method=None):
 	frappe.db.sql("SELECT name FROM `tabDelivery Trip` WHERE name=%s FOR UPDATE", doc.delivery_trip)
 	if frappe.db.get_value("Delivery Trip", doc.delivery_trip, "custom_completed_at"):
 		frappe.throw("Không hủy xác nhận sau khi Admin đã duyệt hoàn tất chuyến.")
+	from dp_dispatch import transport
+	trip = frappe.get_doc('Delivery Trip', doc.delivery_trip)
+	if transport.enabled(trip):
+		transport.before_cancel(doc, trip)
 
 
 def on_submit_order(doc, method=None):
+	if not doc.get('pickup_address_link'):
+		address = frappe.get_doc({
+			'doctype': 'Address', 'address_title': f'Lấy hàng {doc.name}', 'address_type': 'Shipping',
+			'address_line1': doc.pickup_address, 'city': doc.get('pickup_city') or doc.delivery_city,
+			'country': doc.delivery_country or 'Vietnam',
+			'links': [{'link_doctype': 'Customer', 'link_name': doc.customer}],
+		}).insert(ignore_permissions=True)
+		frappe.db.set_value('Delivery Order', doc.name, 'pickup_address_link', address.name, update_modified=False)
 	if not doc.shipping_address:
 		address = frappe.get_doc({
 			"doctype": "Address",

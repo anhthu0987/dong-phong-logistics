@@ -28,6 +28,7 @@ frappe.ui.form.on("Delivery Confirmation", {
 	},
 	refresh(frm) {
 		dp_load_confirmation_stops(frm);
+		dp_confirmation_operation(frm);
 	},
 	setup(frm) {
 	},
@@ -55,6 +56,8 @@ frappe.ui.form.on("Delivery Confirmation", {
 		}).then(({ message }) => {
 			if (!message) return;
 			frm.set_value("delivery_order", message.delivery_order || "");
+			frm.set_value("operation", message.operation || "Delivery");
+			dp_confirmation_operation(frm);
 			frm.set_value("delivery_note", message.delivery_note || "");
 			frm.set_value("shipping_fee_due", message.shipping_fee || 0);
 			frm.clear_table("items");
@@ -70,3 +73,15 @@ frappe.ui.form.on("Delivery Confirmation", {
 		});
 	},
 });
+
+function dp_confirmation_operation(frm) {
+	const kind = frm.doc.operation || "Delivery";
+	const grid = frm.fields_dict.items?.grid;
+	if (!grid) return;
+	grid.update_docfield_property("picked_up_qty", "hidden", kind !== "Pickup");
+	grid.update_docfield_property("delivered_qty", "hidden", kind !== "Delivery");
+	grid.update_docfield_property("returned_qty", "hidden", kind !== "Delivery");
+	grid.update_docfield_property("returned_qty", "label", "Cần trả người gửi (còn trên xe)");
+	grid.update_docfield_property("returned_to_sender_qty", "hidden", kind !== "Return");
+	frm.toggle_display(["shipping_fee_due", "shipping_fee_collected", "fee_collection_method"], kind === "Delivery");
+}

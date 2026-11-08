@@ -50,6 +50,9 @@ def submitted_confirmations(trip, stop):
 
 
 def validate_all_stops(trip):
+	from dp_dispatch.transport import enabled, validate_complete
+	if enabled(trip):
+		validate_complete(trip)
 	if not trip.delivery_stops:
 		frappe.throw("Chuyến chưa có điểm giao.")
 	for stop in trip.delivery_stops:
@@ -60,7 +63,7 @@ def validate_all_stops(trip):
 			confirmation = frappe.get_doc("Delivery Confirmation", name)
 			if any(flt(row.pending_qty) > 0 for row in confirmation.items):
 				frappe.throw(f"Điểm giao {stop.idx} còn hàng chờ xử lý.")
-		if stop.get("custom_delivery_order"):
+		if stop.get("custom_delivery_order") and (not enabled(trip) or stop.custom_stop_type == 'Delivery'):
 			order = frappe.get_doc("Delivery Order", stop.custom_delivery_order)
 			paid = sum(flt(frappe.db.get_value("Delivery Confirmation", name, "shipping_fee_collected")) for name in names)
 			if paid + 0.000001 < flt(order.shipping_fee):
@@ -82,12 +85,15 @@ def get_stop_board(trip):
 				unit = item.uom or "kiện"
 				item_totals[unit] = item_totals.get(unit, 0) + flt(item.qty)
 		names = submitted_confirmations(doc, stop)
-		quantities = {"allocated": 0, "delivered": 0, "returned": 0, "pending": 0}
+		quantities = {"allocated": 0, "delivered": 0, "returned": 0, "pending": 0, "picked_up": 0, "returned_to_sender": 0}
 		for name in names:
-			for row in frappe.get_all("Delivery Confirmation Item", filters={"parent": name}, fields=["allocated_qty", "delivered_qty", "returned_qty", "pending_qty"]):
+			for row in frappe.get_all("Delivery Confirmation Item", filters={"parent": name}, fields=["allocated_qty", "delivered_qty", "returned_qty", "pending_qty", "picked_up_qty", "returned_to_sender_qty"]):
 				for field in quantities:
 					quantities[field] += flt(row.get(field + "_qty"))
 		board.append({
+			"operation": stop.get('custom_stop_type') or 'Delivery',
+			"window_start": stop.get('custom_window_start'), "window_end": stop.get('custom_window_end'),
+			"planned_arrival": stop.get('custom_planned_arrival'), "load_after_kg": stop.get('custom_load_after_kg'),
 			"stop": stop.name, "customer": stop.customer, "address": stop.get("customer_address") or stop.get("address"),
 			"order": order_name, "status": stop.get("custom_delivery_state") or "Assigned",
 			"total": " + ".join(f"{qty:g} {unit}" for unit, qty in sorted(item_totals.items())),
@@ -197,6 +203,9 @@ def request_incident_closure(trip, note):
 def close_trip_for_incident(trip, note=None):
 	frappe.only_for("System Manager")
 	doc = lock_trip(trip)
+	from dp_dispatch.transport import enabled, validate_complete
+	if enabled(doc):
+		validate_complete(doc)
 	if doc.docstatus != 1 or doc.status != "In Transit" or doc.get("custom_completion_status") != "Exception Requested":
 		frappe.throw("Chỉ đóng chuyến đang vận chuyển và có báo cáo sự cố chờ Admin xử lý.")
 	if not (doc.get("custom_completion_review_note") or "").strip():

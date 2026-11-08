@@ -1,4 +1,5 @@
 const DP_STATE = {
+	"Picked Up": ["Đã lấy hàng", "#2563eb"],
 	Assigned: ["Đã phân công", "#64748b"],
 	"In Transit": ["Đang giao", "#2563eb"],
 	Delivered: ["Đã giao đủ", "#15803d"],
@@ -18,22 +19,25 @@ async function dp_stop_board(frm) {
 			const order = stop.order ? `<a href="/app/delivery-order/${encodeURIComponent(stop.order)}">${frappe.utils.escape_html(stop.order)}</a>` : "Điểm theo Delivery Note";
 			const q = stop.quantities || {};
 			return `<div style="min-width:225px;max-width:290px;border:2px solid ${color};border-radius:12px;padding:12px;background:var(--card-bg)">
-				<div style="font-size:12px;color:#64748b">ĐIỂM ${index + 1}</div><strong>${frappe.utils.escape_html(stop.customer || "Điểm giao")}</strong>
+				<div style="font-size:12px;color:#64748b">ĐIỂM ${index + 1} · ${{Pickup:"Lấy hàng",Delivery:"Giao hàng",Return:"Trả người gửi"}[stop.operation] || "Giao hàng"}</div><strong>${frappe.utils.escape_html(stop.customer || "Điểm giao")}</strong>
 				<div style="margin:6px 0;color:${color};font-weight:700">● ${label}</div><div>${order}</div>
 				<div style="margin-top:6px">${frappe.utils.escape_html(stop.address || "")}</div>
+				${stop.window_start ? `<div style="font-size:12px;margin-top:6px">Khung giờ: ${frappe.utils.escape_html(String(stop.window_start))} → ${frappe.utils.escape_html(String(stop.window_end))}<br>Đến dự kiến: ${frappe.utils.escape_html(String(stop.planned_arrival || ""))}<br>Tải dự kiến sau điểm: ${flt(stop.load_after_kg)} kg</div>` : ""}
 				${stop.total ? `<div style="margin-top:8px"><b>Cần giao:</b> ${frappe.utils.escape_html(stop.total)}</div>` : ""}
-				<div style="margin-top:6px;font-size:12px">Đã phân: ${q.allocated || 0} · Đã nhận: ${q.delivered || 0}</div>
+				<div style="margin-top:6px;font-size:12px">Đã lấy: ${q.picked_up || 0} · Đã giao: ${q.delivered || 0} · Đã trả người gửi: ${q.returned_to_sender || 0}</div>
 				<div style="font-size:12px">Hoàn/trả: ${q.returned || 0} · Còn chờ: ${q.pending || 0}</div>
 			</div>`;
 		}).join("");
 		const total = frm.doc.custom_total_delivery_qty ? `<div style="font-weight:700;margin:4px 0 8px">Tổng hàng cả chuyến: ${frappe.utils.escape_html(frm.doc.custom_total_delivery_qty)}</div>` : "";
-		frm.dashboard.set_headline(`${total}<div style="display:flex;gap:10px;overflow-x:auto;padding:10px 2px">${cards}</div>`);
+		const onboard = frm.doc.custom_transport_mode === "Pickup and Delivery" ? `<div>Hàng trên xe: ${frappe.utils.escape_html(frm.doc.custom_onboard_quantity || "0")} · ${flt(frm.doc.custom_onboard_weight_kg)} kg</div>` : "";
+		frm.dashboard.set_headline(`${total}${onboard}<div style="display:flex;gap:10px;overflow-x:auto;padding:10px 2px">${cards}</div>`);
 	} catch (e) {
 		// The trip form itself remains usable if the summary endpoint is unavailable.
 	}
 }
 
 async function dp_update_order_totals(frm) {
+	if (frm.doc.custom_transport_mode === "Pickup and Delivery") return; // Server computes peak load by route sequence.
 	if (frm.doc.docstatus !== 0) return;
 	const stops = frm.doc.delivery_stops || [];
 	const orders = [...new Set(stops.map(s => s.custom_delivery_order).filter(Boolean))];
@@ -54,6 +58,9 @@ async function dp_update_order_totals(frm) {
 }
 
 frappe.ui.form.on("Delivery Trip", {
+	onload(frm) {
+		if (frm.is_new()) frm.set_value("custom_transport_mode", "Pickup and Delivery");
+	},
 	setup(frm) {
 		dp_configure_stop_grid(frm);
 		frm.set_query("custom_delivery_order", "delivery_stops", () => ({
@@ -63,6 +70,18 @@ frappe.ui.form.on("Delivery Trip", {
 	refresh(frm) {
 		dp_configure_stop_grid(frm);
 		dp_stop_board(frm);
+		if (frm.doc.docstatus === 0) {
+			frm.add_custom_button(__("Thêm đơn lấy–giao"), () => frappe.prompt([
+				{fieldname:"order",label:__("Đơn vận chuyển"),fieldtype:"Link",options:"Delivery Order",reqd:1,
+				 get_query: () => ({filters:{docstatus:1,delivery_status:"Pending Assignment"}})}
+			], async values => {
+				if ((frm.doc.delivery_stops || []).some(s => s.custom_delivery_order === values.order)) return frappe.msgprint(__("Đơn đã có trên chuyến."));
+				const {message} = await frappe.call({method:"dp_dispatch.transport.order_stops",args:{order_name:values.order}});
+				await frm.set_value("custom_transport_mode", "Pickup and Delivery");
+				for (const row of message || []) frm.add_child("delivery_stops", row);
+				frm.refresh_field("delivery_stops");
+			}, __("Thêm điểm lấy và giao")));
+		}
 		if (frm.doc.docstatus !== 1) return;
 		const roles = frappe.user_roles || [];
 		const isDriver = roles.includes("DP Driver") && !roles.includes("System Manager");
@@ -76,9 +95,9 @@ frappe.ui.form.on("Delivery Trip", {
 			frm.add_custom_button(__("Bắt đầu chuyến"), () => frappe.confirm(
 				__("Xác nhận chuyến đã bắt đầu?"), () => run("start_trip")));
 		}
-		if (isDriver && frm.doc.status === "In Transit" && !frm.doc.custom_completed_at) {
+		if ((isDriver || isAdmin || isFleetManager) && frm.doc.status === "In Transit" && !frm.doc.custom_completed_at) {
 			frm.add_custom_button(__("Ghi nhận giao/hoàn hàng"), () => {
-				const stops = (frm.doc.delivery_stops || []).filter(stop => !["Delivered", "Returned"].includes(stop.custom_delivery_state));
+				const stops = (frm.doc.delivery_stops || []).filter(stop => !["Delivered", "Returned", "Picked Up", "Partial"].includes(stop.custom_delivery_state));
 				if (!stops.length) return frappe.msgprint(__("Các điểm hiện đã có kết quả cuối."));
 				frappe.prompt([{ fieldname: "stop", label: __("Điểm giao"), fieldtype: "Select", reqd: 1,
 					options: stops.map(stop => ({ value: stop.name, label: dp_stop_label(stop) })) }],
@@ -121,7 +140,8 @@ function dp_stop_label(stop) {
 	const customer = stop.customer || "Khách chưa xác định";
 	const destination = stop.customer_address || stop.address || "Chưa có địa chỉ";
 	const source = stop.custom_delivery_order || stop.delivery_note || "Chưa gắn đơn";
-	return `${stop.idx}. ${customer} — ${destination} (${source})`;
+	const kind = {Pickup:"Lấy hàng",Delivery:"Giao hàng",Return:"Trả người gửi"}[stop.custom_stop_type] || "Giao hàng";
+	return `${stop.idx}. ${kind}: ${customer} — ${destination} (${source})`;
 }
 
 function dp_configure_stop_grid(frm) {
@@ -147,12 +167,13 @@ frappe.ui.form.on("Delivery Stop", {
 			return dp_update_order_totals(frm);
 		}
 		const { message } = await frappe.db.get_value("Delivery Order", orderName,
-			["customer", "shipping_address", "delivery_address"]);
+			["customer", "shipping_address", "delivery_address", "pickup_address_link", "pickup_address"]);
 		// Ignore a late response if the user selected a different order meanwhile.
 		if (!message || locals[cdt][cdn].custom_delivery_order !== orderName) return;
 		await frappe.model.set_value(cdt, cdn, "customer", message.customer || "");
-		await frappe.model.set_value(cdt, cdn, "address", message.shipping_address || "");
-		await frappe.model.set_value(cdt, cdn, "customer_address", message.delivery_address || "");
+		const pickup = ["Pickup", "Return"].includes(stop.custom_stop_type);
+		await frappe.model.set_value(cdt, cdn, "address", (pickup ? message.pickup_address_link : message.shipping_address) || "");
+		await frappe.model.set_value(cdt, cdn, "customer_address", (pickup ? message.pickup_address : message.delivery_address) || "");
 		frm.refresh_field("delivery_stops");
 		return dp_update_order_totals(frm);
 	},
