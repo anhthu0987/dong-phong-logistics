@@ -1,7 +1,7 @@
 {
   "doctype": "DocType",
   "name": "Delivery Confirmation Item",
-  "module": "DP Dispatch",
+  "module": "DP Tracking and POD",
   "istable": 1,
   "editable_grid": 1,
   "fields": [
