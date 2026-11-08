@@ -32,7 +32,7 @@ CUSTOM_FIELDS = {
 }
 
 def setup_roles_and_pages():
-    for r_name in ["GPS Device", "DP GPS Simulator", "Fleet Manager", "DP Driver"]:
+    for r_name in ["GPS Device", "DP GPS Simulator", "Fleet Manager", "DP Driver", "Driver"]:
         if not frappe.db.exists("Role", r_name):
             frappe.get_doc({"doctype": "Role", "role_name": r_name, "desk_access": 1}).insert(ignore_permissions=True)
 
@@ -42,19 +42,14 @@ def setup_roles_and_pages():
     ]
     for p in pages:
         if not frappe.db.exists("Page", p["page_name"]):
+            existing_roles = [r for r in ["System Manager", "Fleet Manager", "DP Driver", "Administrator"] if frappe.db.exists("Role", r)]
             page_doc = frappe.get_doc({
                 "doctype": "Page",
                 "page_name": p["page_name"],
                 "title": p["title"],
                 "module": "DP Dispatch",
                 "standard": "Yes",
-                "roles": [
-                    {"role": "System Manager"},
-                    {"role": "Fleet Manager"},
-                    {"role": "DP Driver"},
-                    {"role": "Driver"},
-                    {"role": "Administrator"}
-                ]
+                "roles": [{"role": r} for r in existing_roles]
             })
             page_doc.insert(ignore_permissions=True)
 
@@ -83,7 +78,6 @@ def setup_gps_log_doctype():
                 {"role": "Fleet Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
                 {"role": "GPS Device", "read": 1, "write": 0, "create": 1, "delete": 0},
                 {"role": "DP GPS Simulator", "read": 1, "write": 0, "create": 1, "delete": 0},
-                {"role": "Driver", "read": 1, "write": 0, "create": 0, "delete": 0},
                 {"role": "DP Driver", "read": 1, "write": 0, "create": 0, "delete": 0},
                 {"role": "All", "read": 1, "write": 0, "create": 0, "delete": 0}
             ]
@@ -104,11 +98,12 @@ def install_gps():
     create_custom_fields(CUSTOM_FIELDS, update=False)
     setup_roles_and_pages()
     setup_gps_log_doctype()
-    target_roles = ["Driver", "DP Driver", "Fleet Manager", "GPS Device", "DP GPS Simulator"]
+    target_roles = ["DP Driver", "Fleet Manager", "GPS Device", "DP GPS Simulator"]
     target_doctypes = ["Delivery Trip", "Delivery Stop", "Vehicle"]
     for dt in target_doctypes:
         for r in target_roles:
-            add_permission(dt, r, ptype=0)
-            add_permission(dt, r, ptype=1)
-            if r == "Fleet Manager":
-                add_permission(dt, r, ptype=2)
+            if frappe.db.exists("Role", r):
+                add_permission(dt, r, ptype=0)
+                add_permission(dt, r, ptype=1)
+                if r == "Fleet Manager":
+                    add_permission(dt, r, ptype=2)
