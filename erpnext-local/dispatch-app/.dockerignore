@@ -1,0 +1,6 @@
+**/__pycache__
+**/*.pyc
+**/gps_config.local.json
+**/gps_config.json
+**/.env
+**/*.egg-info

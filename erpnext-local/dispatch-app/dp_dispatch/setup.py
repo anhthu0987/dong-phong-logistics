@@ -72,6 +72,8 @@ def install():
     },update=True)
     from dp_dispatch.transport import install_schema
     install_schema()
+    from dp_dispatch.gps_setup import install_gps
+    install_gps()
     sync_existing_quotation_delivery_order_links()
     from dp_dispatch.permissions import install_permissions
     install_permissions()

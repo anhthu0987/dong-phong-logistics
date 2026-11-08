@@ -1,0 +1,1842 @@
+==> Quan-ly.ps1 <==
+param([ValidateSet('start','stop','status','backup','install','build')][string]$Action='start')
+$ErrorActionPreference='Stop'
+Set-Location $PSScriptRoot
+$composeArgs=@('compose','--project-name','logistics-erpnext','--env-file','.env','-f','frappe_docker/compose.yaml','-f','frappe_docker/overrides/compose.mariadb.yaml','-f','frappe_docker/overrides/compose.redis.yaml','-f','local.yaml')
+function Run-Compose { & docker @composeArgs @args; if($LASTEXITCODE -ne 0){throw 'Docker command failed. Check Docker Desktop and the output above.'} }
+switch($Action){
+ 'build' {
+   foreach($scriptPath in @('frappe_docker/resources/core/main-entrypoint.sh','frappe_docker/resources/core/start.sh')) {
+     $absoluteScript=(Resolve-Path $scriptPath).Path
+     $scriptText=[System.IO.File]::ReadAllText($absoluteScript)
+     [System.IO.File]::WriteAllText($absoluteScript,$scriptText.Replace("`r`n","`n"),[System.Text.UTF8Encoding]::new($false))
+   }
+   & docker build --build-arg FRAPPE_BRANCH=version-15 --secret id=apps_json,src=apps.json --tag logistics-erpnext:v15 --file frappe_docker/images/layered/Containerfile frappe_docker
+   if($LASTEXITCODE -ne 0){throw 'Build failed'}
+ }
+ 'start' { Run-Compose up -d; Write-Host 'Open http://localhost:8085' }
+ 'stop' { Run-Compose stop }
+ 'status' { Run-Compose ps }
+ 'backup' { Run-Compose exec -T backend bench --site logistics.localhost backup --with-files; New-Item -ItemType Directory -Force backups | Out-Null; Run-Compose cp backend:/home/frappe/frappe-bench/sites/logistics.localhost/private/backups/. ./backups/ }
+ 'install' {
+   $cfg=@{}; Get-Content .env | ForEach-Object { if($_ -match '^([^#=]+)=(.*)$'){$cfg[$matches[1]]=$matches[2]} }
+   Run-Compose exec -T -e "SETUP_DB_PASSWORD=$($cfg['DB_PASSWORD'])" -e "SETUP_ADMIN_PASSWORD=$($cfg['ADMIN_PASSWORD'])" backend bash -c 'bench new-site logistics.localhost --mariadb-user-host-login-scope="%" --db-root-password "$SETUP_DB_PASSWORD" --admin-password "$SETUP_ADMIN_PASSWORD" --install-app erpnext'
+   Run-Compose exec -T backend bench --site logistics.localhost install-app hrms
+   Run-Compose exec -T backend bench --site logistics.localhost enable-scheduler
+ }
+}
+
+==> apps.json <==
+[
+  {"url": "https://github.com/frappe/erpnext", "branch": "version-15"},
+  {"url": "https://github.com/frappe/hrms", "branch": "version-15"}
+]
+
+==> database/Install-Database.ps1 <==
+# Stop script executing on error
+$ErrorActionPreference = 'Stop'
+
+# Define source files on Host
+$installFile = Join-Path $PSScriptRoot 'install.py'
+$seedFile    = Join-Path $PSScriptRoot 'reset_seed.py'
+$runnerFile  = Join-Path $PSScriptRoot 'run_install.sh'
+
+# 1. Copy install.py to Container
+Write-Host ">>> [1/5] Copying install.py to Docker container..." -ForegroundColor Cyan
+& docker cp $installFile logistics-erpnext-backend-1:/tmp/install.py
+if ($LASTEXITCODE -ne 0) { throw 'Could not copy install.py to container' }
+
+# 2. Copy reset_seed.py to Container
+Write-Host ">>> [2/5] Copying reset_seed.py to Docker container..." -ForegroundColor Cyan
+& docker cp $seedFile logistics-erpnext-backend-1:/tmp/reset_seed.py
+if ($LASTEXITCODE -ne 0) { throw 'Could not copy reset_seed.py to container' }
+
+# 3. Copy runner script run_install.sh to Container
+Write-Host ">>> [3/5] Copying run_install.sh to Docker container..." -ForegroundColor Cyan
+& docker cp $runnerFile logistics-erpnext-backend-1:/tmp/run_dp_install.sh
+if ($LASTEXITCODE -ne 0) { throw 'Could not copy runner script' }
+
+# 4. Execute runner script inside Container
+Write-Host ">>> [4/5] Running installation & seeding inside container..." -ForegroundColor Cyan
+& docker exec logistics-erpnext-backend-1 bash /tmp/run_dp_install.sh
+if ($LASTEXITCODE -ne 0) { throw 'Schema installation / seeding failed. Review output; do not reset the site.' }
+
+# 5. Export generated schema/results back to Host
+Write-Host ">>> [5/5] Exporting schema & results back to Host..." -ForegroundColor Cyan
+& docker cp logistics-erpnext-backend-1:/tmp/dong-phong-schema/. $PSScriptRoot
+if ($LASTEXITCODE -ne 0) { throw 'Schema export failed' }
+
+Write-Host ">>> SUCCESS: Database installation and seeding completed successfully!" -ForegroundColor Green
+==> database/init_data.py <==
+import frappe
+
+def initialize_dong_phong_defaults():
+    """
+    Automates prerequisite master data initialization for Dong Phong Logistics.
+    Safe to run multiple times (idempotent).
+    """
+    frappe.set_user("Administrator")
+    print("🚀 Starting Dong Phong Logistics Data Initialization...")
+
+    # 1. Ensure UOM "Litre" exists
+    if not frappe.db.exists("UOM", "Litre"):
+        uom = frappe.get_doc({
+            "doctype": "UOM",
+            "uom_name": "Litre",
+            "must_be_whole_number": 0
+        })
+        uom.insert(ignore_permissions=True)
+        print("  [+] Created UOM: Litre")
+    else:
+        print("  [=] UOM Litre already exists")
+
+    # 2. Ensure Customer Group "Commercial" exists
+    if not frappe.db.exists("Customer Group", "Commercial"):
+        cg = frappe.get_doc({
+            "doctype": "Customer Group",
+            "customer_group_name": "Commercial",
+            "is_group": 0
+        })
+        cg.insert(ignore_permissions=True)
+        print("  [+] Created Customer Group: Commercial")
+    else:
+        print("  [=] Customer Group Commercial already exists")
+
+    # 3. Ensure Territory "Vietnam" exists
+    if not frappe.db.exists("Territory", "Vietnam"):
+        ter = frappe.get_doc({
+            "doctype": "Territory",
+            "territory_name": "Vietnam",
+            "is_group": 0
+        })
+        ter.insert(ignore_permissions=True)
+        print("  [+] Created Territory: Vietnam")
+    else:
+        print("  [=] Territory Vietnam already exists")
+
+    # 4. Create or Update Vehicle 51C-123.45
+    vehicle_license = "51C-123.45"
+    if not frappe.db.exists("Vehicle", vehicle_license):
+        vehicle = frappe.get_doc({
+            "doctype": "Vehicle",
+            "license_plate": vehicle_license,
+            "make": "Dong Phong Demo",
+            "model": "Truck 2026",
+            "payload_capacity": 2000,
+            "custom_technical_status": "Available" if frappe.db.has_column("Vehicle", "custom_technical_status") else None
+        })
+        vehicle.insert(ignore_permissions=True)
+        print(f"  [+] Created Vehicle: {vehicle_license} (Payload: 2000kg)")
+    else:
+        vehicle = frappe.get_doc("Vehicle", vehicle_license)
+        vehicle.payload_capacity = 2000
+        if hasattr(vehicle, "custom_technical_status"):
+            vehicle.custom_technical_status = "Available"
+        vehicle.save(ignore_permissions=True)
+        print(f"  [^] Updated Vehicle: {vehicle_license} (Payload set to 2000kg)")
+
+    frappe.db.commit()
+    print("✅ Dong Phong Logistics Initialization Completed Successfully!")
+
+
+if __name__ == "__main__":
+    initialize_dong_phong_defaults()
+==> database/install.py <==
+import frappe
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+from frappe.permissions import add_permission, update_permission_property
+
+COORD = dict(fieldtype='Float', precision='9')
+
+CUSTOM_FIELDS = {
+    'Vehicle': [
+        dict(fieldname='custom_payload_capacity_kg', label='Payload Capacity (kg)', fieldtype='Float',
+             non_negative=1, insert_after='model'),
+        dict(fieldname='custom_technical_status', label='Technical Status', fieldtype='Select',
+             options='Available\nUnder Maintenance\nOut of Service', default='Available',
+             insert_after='custom_payload_capacity_kg'),
+        dict(fieldname='custom_gps_device_id', label='GPS Device ID', fieldtype='Data',
+             search_index=1, insert_after='custom_technical_status'),
+        dict(fieldname='custom_last_lat', label='Last GPS Latitude', insert_after='custom_gps_device_id',
+             read_only=1, **COORD),
+        dict(fieldname='custom_last_lng', label='Last GPS Longitude', insert_after='custom_last_lat',
+             read_only=1, **COORD),
+        dict(fieldname='custom_last_gps_time', label='Last GPS Time', fieldtype='Datetime',
+             read_only=1, insert_after='custom_last_lng'),
+    ],
+    'Address': [
+        dict(fieldname='custom_latitude', label='Latitude', insert_after='pincode', **COORD),
+        dict(fieldname='custom_longitude', label='Longitude', insert_after='custom_latitude', **COORD),
+        dict(fieldname='custom_geocode_source', label='Geocode Source', fieldtype='Select',
+             options='Manual\nGoogle Maps\nOpenStreetMap\nGPS Device', default='Manual',
+             insert_after='custom_longitude'),
+    ],
+    'Delivery Trip': [
+        dict(fieldname='custom_expected_end_time', label='Expected End Time', fieldtype='Datetime',
+             insert_after='departure_time'),
+        dict(fieldname='custom_start_odometer', label='Start Odometer (km)', fieldtype='Int',
+             non_negative=1, insert_after='custom_expected_end_time'),
+        dict(fieldname='custom_end_odometer', label='End Odometer (km)', fieldtype='Int',
+             non_negative=1, insert_after='custom_start_odometer'),
+        dict(fieldname='custom_planned_load_kg', label='Planned Load (kg)', fieldtype='Float',
+             non_negative=1, insert_after='custom_end_odometer'),
+        dict(fieldname='custom_origin_lat', label='Origin Latitude', insert_after='custom_planned_load_kg',
+             **COORD),
+        dict(fieldname='custom_origin_lng', label='Origin Longitude', insert_after='custom_origin_lat',
+             **COORD),
+    ],
+}
+
+def setup_roles_and_pages():
+    for r_name in ["GPS Device", "Driver", "Fleet Manager"]:
+        if not frappe.db.exists("Role", r_name):
+            frappe.get_doc({"doctype": "Role", "role_name": r_name, "desk_access": 1}).insert(ignore_permissions=True)
+
+    pages = [
+        {"page_name": "fleet-map", "title": "Fleet map"},
+        {"page_name": "driver-gps", "title": "Lịch trình Tài xế"}
+    ]
+    for p in pages:
+        if not frappe.db.exists("Page", p["page_name"]):
+            page_doc = frappe.get_doc({
+                "doctype": "Page",
+                "page_name": p["page_name"],
+                "title": p["title"],
+                "module": "Dp Dispatch",
+                "standard": "Yes",
+                "roles": [
+                    {"role": "System Manager"},
+                    {"role": "Fleet Manager"},
+                    {"role": "Driver"},
+                    {"role": "Administrator"}
+                ]
+            })
+            page_doc.insert(ignore_permissions=True)
+
+def setup_gps_log_doctype():
+    doctype_name = "GPS Log"
+    if not frappe.db.exists("DocType", doctype_name):
+        doc = frappe.get_doc({
+            "doctype": "DocType",
+            "name": doctype_name,
+            "module": "Dp Dispatch",
+            "custom": 1,
+            "is_submittable": 0,
+            "track_changes": 0,
+            "autoname": "hash",
+            "fields": [
+                {"fieldname": "vehicle", "label": "Vehicle", "fieldtype": "Link", "options": "Vehicle", "reqd": 1, "in_list_view": 1, "search_index": 1},
+                {"fieldname": "delivery_trip", "label": "Delivery Trip", "fieldtype": "Link", "options": "Delivery Trip", "in_list_view": 1, "search_index": 1},
+                {"fieldname": "recorded_at", "label": "Recorded At", "fieldtype": "Datetime", "reqd": 1, "in_list_view": 1, "search_index": 1},
+                {"fieldname": "latitude", "label": "Latitude", "fieldtype": "Float", "precision": "9", "reqd": 1, "in_list_view": 1},
+                {"fieldname": "longitude", "label": "Longitude", "fieldtype": "Float", "precision": "9", "reqd": 1, "in_list_view": 1},
+                {"fieldname": "source_event_id", "label": "Source Event ID", "fieldtype": "Data", "reqd": 1, "unique": 1, "in_list_view": 1},
+                {"fieldname": "source_type", "label": "Source Type", "fieldtype": "Select", "options": "Hardware GPS\nMobile App\nSimulated", "default": "Simulated", "reqd": 1, "in_list_view": 1}
+            ],
+            "permissions": [
+                {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+                {"role": "Fleet Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
+                {"role": "GPS Device", "read": 1, "write": 0, "create": 1, "delete": 0},
+                {"role": "Driver", "read": 1, "write": 0, "create": 0, "delete": 0},
+                {"role": "All", "read": 1, "write": 0, "create": 0, "delete": 0}
+            ]
+        })
+        doc.insert(ignore_permissions=True)
+
+    index_queries = [
+        "ALTER TABLE `tabGPS Log` ADD INDEX `idx_vehicle_recorded` (`vehicle`, `recorded_at`);",
+        "ALTER TABLE `tabGPS Log` ADD INDEX `idx_trip_recorded` (`delivery_trip`, `recorded_at`);"
+    ]
+    for q in index_queries:
+        try:
+            frappe.db.sql(q)
+        except Exception:
+            pass
+
+def setup_database():
+    print("==================================================")
+    print("🚀 THIẾT LẬP DATABASE SCHEMA SNAPSHOT V5 (NO SEED DATA)")
+    print("==================================================")
+
+    create_custom_fields(CUSTOM_FIELDS, update=False)
+    if not frappe.get_meta('Vehicle').allow_import:
+        make_property_setter('Vehicle', None, 'allow_import', 1, 'Check', for_doctype=True)
+    update_permission_property('Vehicle', 'Fleet Manager', 0, 'import', 1)
+    print(">>> [1/4] Đã đồng bộ Custom Fields (Precision 9 cho Tọa độ)")
+
+    setup_roles_and_pages()
+    print(">>> [2/4] Đã đăng ký Roles & Pages 'fleet-map' / 'driver-gps'")
+
+    setup_gps_log_doctype()
+    print(">>> [3/4] Đã thiết lập DocType 'GPS Log' & Database Indexes")
+
+    target_roles = ["Driver", "Fleet Manager", "GPS Device"]
+    target_doctypes = ["Delivery Trip", "Delivery Stop", "Vehicle"]
+
+    for dt in target_doctypes:
+        for r in target_roles:
+            add_permission(dt, r, ptype=0)
+            add_permission(dt, r, ptype=1)
+            if r == "Fleet Manager":
+                add_permission(dt, r, ptype=2)
+    print(">>> [4/4] Đã cấp quyền DocPerm chuẩn cho Delivery Trip, Delivery Stop & Vehicle")
+
+    frappe.clear_cache()
+    frappe.db.commit()
+    print("==================================================")
+    print("🎉 HOÀN TẤT THIẾT LẬP SYSTEM SCHEMA SNAPSHOT V5!")
+    print("==================================================")
+
+if __name__ == "__main__":
+    setup_database()
+
+==> database/reset_seed.py <==
+"""Legacy destructive seeder is disabled. Use existing vehicles/trips for GPS."""
+raise RuntimeError("Reset is disabled: install GPS with bench migrate; use simulator.py for sample locations.")
+
+==> database/run_install.sh <==
+#!/bin/sh
+set -eu
+
+echo ">>> [1/2] Running System Schema Installation (install.py)..."
+bench --site logistics.localhost execute exec --args '["exec(compile(open(\"/tmp/install.py\").read(),\"install.py\",\"exec\"),dict(__name__=\"__main__\"))"]'
+
+echo ">>> [2/2] Running Demo Data Reset & Seeding (reset_seed.py)..."
+bench --site logistics.localhost execute exec --args '["exec(compile(open(\"/tmp/reset_seed.py\").read(),\"reset_seed.py\",\"exec\"),dict(__name__=\"__main__\"))"]'
+
+echo ">>> Cleaning Cache..."
+bench --site logistics.localhost clear-cache
+==> dispatch-app/Deploy.ps1 <==
+$ErrorActionPreference='Stop'
+& docker build -t logistics-erpnext:dispatch-v1 $PSScriptRoot
+if($LASTEXITCODE -ne 0){throw 'Dispatch image build failed'}
+& (Join-Path $PSScriptRoot '../Quan-ly.ps1') start
+& docker exec logistics-erpnext-backend-1 bench --site logistics.localhost install-app dp_dispatch
+if($LASTEXITCODE -ne 0){throw 'Dispatch app install failed'}
+& docker exec logistics-erpnext-backend-1 bench --site logistics.localhost migrate
+if($LASTEXITCODE -ne 0){throw 'Dispatch migration failed'}
+& docker restart logistics-erpnext-backend-1 logistics-erpnext-queue-short-1 logistics-erpnext-queue-long-1 logistics-erpnext-scheduler-1
+if($LASTEXITCODE -ne 0){throw 'Service restart failed'}
+
+==> dispatch-app/Dockerfile <==
+FROM logistics-erpnext:v15
+COPY --chown=frappe:frappe . /home/frappe/frappe-bench/apps/dp_dispatch
+RUN /home/frappe/frappe-bench/env/bin/pip install --no-deps --no-build-isolation -e /home/frappe/frappe-bench/apps/dp_dispatch
+
+==> dispatch-app/pyproject.toml <==
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dp_dispatch"
+version = "0.1.0"
+description = "Dong Phong fleet dispatch rules"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+dp_dispatch = ["*.txt"]
+
+==> dispatch-app/tests_dispatch.py <==
+"""Integration checks using real Document insert/submit/cancel; rollback all test data."""
+import json
+import frappe
+from frappe.utils import add_days, today
+
+def run():
+    results=[]
+    original_counts={dt:frappe.db.count(dt) for dt in ['Vehicle','Driver','Delivery Trip']}
+    original_user=frappe.session.user
+    frappe.set_user('Administrator')
+    frappe.db.savepoint('dispatch_suite')
+    try:
+        vehicles=[];drivers=[]
+        for i in range(3):
+            v=frappe.get_doc(dict(doctype='Vehicle',license_plate='DP-TEST-'+frappe.generate_hash(length=8),
+                make='Simulation',model='Test',last_odometer=1000,fuel_type='Diesel',uom='Litre',
+                custom_payload_capacity_kg=2000,custom_technical_status='Available')).insert()
+            vehicles.append(v.name)
+            drivers.append(frappe.get_doc(dict(doctype='Driver',full_name='DP TEST '+str(i),status='Active',naming_series='HR-DRI-.YYYY.-')).insert().name)
+        template=frappe.get_doc('Delivery Trip','MAT-DT-2026-00001')
+        date=add_days(today(),10)
+        def trip(vi=0,di=0,start='08:00:00',end='12:00:00',load=1000):
+            return frappe.get_doc(dict(doctype='Delivery Trip',naming_series='MAT-DT-.YYYY.-',company=template.company,
+                vehicle=vehicles[vi],driver=drivers[di],departure_time=date+' '+start,
+                custom_expected_end_time=date+' '+end,custom_planned_load_kg=load,
+                custom_start_odometer=1000,
+                delivery_stops=[dict(customer=s.customer,address=s.address) for s in template.delivery_stops]))
+        def reject(label,code,fn):
+            frappe.db.savepoint('rejected_case')
+            try: fn()
+            except frappe.ValidationError as e:
+                if '['+code+']' not in str(e): raise
+                results.append(label)
+            else: raise AssertionError('Expected rejection: '+label)
+            finally: frappe.db.rollback(save_point='rejected_case')
+        valid=trip().insert();valid.submit()
+        assert valid.docstatus==1 and valid.status=='Scheduled'
+        results.append('Valid trip inserts and submits')
+        reject('Same vehicle overlap blocked','DP_CONFLICT',lambda:trip(di=1).insert())
+        reject('Same driver overlap blocked','DP_CONFLICT',lambda:trip(vi=1).insert())
+        other=trip(vi=1,di=1).insert();other.submit();results.append('Different resources may overlap')
+        boundary=trip(start='12:00:00',end='14:00:00').insert();boundary.submit();results.append('Adjacent intervals accepted')
+        reject('Reversed time rejected','DP_TIME',lambda:trip(vi=2,di=2,start='12:00:00',end='08:00:00').insert())
+        reject('Equal timestamps rejected','DP_TIME',lambda:trip(vi=2,di=2,start='08:00:00',end='08:00:00').insert())
+        reject('Overload rejected','DP_OVERLOAD',lambda:trip(vi=2,di=2,load=2001).insert())
+        def no_end():
+            d=trip(vi=2,di=2);d.custom_expected_end_time=None;d.insert();d.submit()
+        reject('Missing end cannot submit','DP_REQUIRED',no_end)
+        reject('Missing load cannot submit','DP_LOAD_REQUIRED',lambda:trip(vi=2,di=2,load=0).insert().submit())
+        def no_capacity():
+            frappe.db.set_value('Vehicle',vehicles[2],'custom_payload_capacity_kg',0)
+            trip(vi=2,di=2).insert().submit()
+        reject('Unknown capacity cannot submit','DP_LOAD_REQUIRED',no_capacity)
+        def unavailable():
+            frappe.db.set_value('Vehicle',vehicles[2],'custom_technical_status','Under Maintenance')
+            trip(vi=2,di=2).insert()
+        reject('Maintenance vehicle rejected','DP_UNAVAILABLE',unavailable)
+        def inactive():
+            frappe.db.set_value('Driver',drivers[2],'status','Suspended')
+            trip(vi=2,di=2).insert()
+        reject('Inactive driver rejected','DP_DRIVER',inactive)
+        def expired():
+            frappe.db.set_value('Driver',drivers[2],'expiry_date',add_days(date,-1))
+            trip(vi=2,di=2).insert()
+        reject('Expired licence rejected','DP_LICENSE',expired)
+        def km_bad():
+            d=trip(vi=2,di=2);d.custom_end_odometer=999;d.insert()
+        reject('Odometer regression rejected','DP_ODOMETER',km_bad)
+        def km_after_submit():
+            d=frappe.get_doc('Delivery Trip',valid.name);d.custom_end_odometer=999;d.save()
+        reject('Odometer checked after submit','DP_ODOMETER',km_after_submit)
+        draft1=trip(vi=2,di=2).insert();draft2=trip(vi=2,di=2).insert()
+        results.append('Drafts do not reserve resources')
+        draft1.submit()
+        reject('Submit rechecks conflict','DP_CONFLICT',lambda:draft2.submit())
+        valid.cancel()
+        replacement=trip().insert();replacement.submit();results.append('Cancellation releases reservation')
+        for stop in replacement.delivery_stops: stop.visited=1
+        replacement.save();assert replacement.status=='Completed'
+        trip().insert().submit();results.append('Completed trip releases reservation')
+    finally:
+        frappe.db.rollback(save_point='dispatch_suite')
+        frappe.set_user(original_user)
+    assert original_counts=={dt:frappe.db.count(dt) for dt in original_counts}
+    result={'passed':len(results),'checks':results,'test_data_rolled_back':True}
+    print(json.dumps(result,ensure_ascii=False))
+    return result
+
+run()
+
+==> dispatch-app/dp_dispatch/hooks.py <==
+app_name = 'dp_dispatch'
+app_title = 'Dong Phong Dispatch'
+app_publisher = 'Dong Phong Project'
+app_description = 'Fleet and driver scheduling for the midterm simulation'
+app_email = 'project@example.invalid'
+app_license = 'MIT'
+required_apps = ['erpnext']
+after_install = 'dp_dispatch.setup.install'
+after_migrate = 'dp_dispatch.setup.install'
+doc_events = {
+    'Delivery Trip': {
+        'validate': 'dp_dispatch.validation.validate_trip',
+        'before_submit': 'dp_dispatch.validation.validate_trip',
+        'before_update_after_submit': 'dp_dispatch.validation.validate_odometer',
+    },
+    'Vehicle': {'validate': 'dp_dispatch.validation.validate_vehicle'},
+}
+doctype_js = {
+    "Delivery Trip": "public/js/delivery_trip.js"
+}
+
+page_js = {
+    "fleet-map": "page/fleet_map/fleet_map.js",
+    "driver-gps": "page/driver_gps/driver_gps.js"
+}
+==> dispatch-app/dp_dispatch/validation.py <==
+"""Server-side rules. Submitted, unfinished trips reserve vehicle and driver.
+
+Drafts are plans, not reservations. Intervals use [start, end).
+Master row locks serialize submissions sharing a vehicle or driver.
+"""
+import math
+import frappe
+from frappe.utils import flt, get_datetime, getdate
+
+def fail(code, message):
+    frappe.throw(f'[{code}] {message}')
+
+def number(value, label):
+    n=flt(value)
+    if not math.isfinite(n) or n<0:
+        fail('DP_NUMBER',label+' phải là số không âm hợp lệ.')
+    return n
+
+def validate_vehicle(doc, method=None):
+    number(doc.get('custom_payload_capacity_kg'),'Tải trọng xe')
+
+def validate_odometer(doc, method=None):
+    start=number(doc.get('custom_start_odometer'),'Số km đầu chuyến')
+    end=number(doc.get('custom_end_odometer'),'Số km cuối chuyến')
+    if end and end<start:
+        fail('DP_ODOMETER','Số km cuối chuyến phải lớn hơn hoặc bằng số km đầu chuyến.')
+
+def validate_trip(doc, method=None):
+    if doc.docstatus==2: return
+    validate_odometer(doc)
+    load=number(doc.get('custom_planned_load_kg'),'Khối lượng dự kiến')
+    start=get_datetime(doc.departure_time) if doc.departure_time else None
+    end=get_datetime(doc.custom_expected_end_time) if doc.get('custom_expected_end_time') else None
+    submitting=doc.docstatus==1 or method=='before_submit'
+    if start and end and end<=start:
+        fail('DP_TIME','Giờ kết thúc dự kiến phải sau giờ xuất phát.')
+    if submitting and (not start or not end or not doc.driver):
+        fail('DP_REQUIRED','Cần tài xế, giờ xuất phát và giờ kết thúc dự kiến trước khi xác nhận chuyến.')
+    # Lock master rows even for draft validation so submit checks use fresh data.
+    vehicles=frappe.db.sql('SELECT name, custom_technical_status, custom_payload_capacity_kg FROM `tabVehicle` WHERE name=%s FOR UPDATE',doc.vehicle,as_dict=True)
+    if not vehicles: fail('DP_VEHICLE','Xe không tồn tại.')
+    vehicle=vehicles[0]
+    if vehicle.custom_technical_status not in (None,'','Available'):
+        fail('DP_UNAVAILABLE','Xe đang bảo trì hoặc ngừng hoạt động, không thể phân công.')
+    if submitting and vehicle.custom_technical_status!='Available':
+        fail('DP_UNCONFIRMED','Cần xác nhận tình trạng xe là Available trước khi xác nhận chuyến.')
+    capacity=number(vehicle.custom_payload_capacity_kg,'Tải trọng xe')
+    if submitting and (capacity<=0 or load<=0):
+        fail('DP_LOAD_REQUIRED','Cần khai báo tải trọng xe và khối lượng hàng dự kiến lớn hơn 0.')
+    if capacity and load>capacity:
+        fail('DP_OVERLOAD','Khối lượng hàng dự kiến vượt tải trọng của xe.')
+    if doc.driver:
+        drivers=frappe.db.sql('SELECT name,status,expiry_date FROM `tabDriver` WHERE name=%s FOR UPDATE',doc.driver,as_dict=True)
+        if not drivers or drivers[0].status!='Active':
+            fail('DP_DRIVER','Tài xế phải có trạng thái Active.')
+        if drivers[0].expiry_date and start and getdate(drivers[0].expiry_date)<getdate(end or start):
+            fail('DP_LICENSE','Giấy phép tài xế hết hạn trước khi chuyến dự kiến kết thúc.')
+    if not start or not end: return
+    # Locking read avoids a stale REPEATABLE READ snapshot after waiting on a master lock.
+    conflicts=frappe.db.sql('''SELECT name, vehicle, driver FROM `tabDelivery Trip`
+        WHERE name != %s AND docstatus=1 AND status IN ('Scheduled','In Transit')
+        AND (vehicle=%s OR (%s != '' AND driver=%s))
+        AND departure_time < %s
+        AND (custom_expected_end_time IS NULL OR custom_expected_end_time > %s)
+        FOR UPDATE''',(doc.name or '',doc.vehicle,doc.driver or '',doc.driver or '',end,start),as_dict=True)
+    if conflicts:
+        c=conflicts[0]
+        resource='Xe' if c.vehicle==doc.vehicle else 'Tài xế'
+        fail('DP_CONFLICT',resource+' đã có chuyến được xác nhận trùng khoảng thời gian. Hãy chọn thời gian hoặc nguồn lực khác.')
+
+==> dispatch-app/dp_dispatch/dp_dispatch/api/gps.py <==
+import frappe
+from frappe import _
+from frappe.utils import get_datetime
+
+DRIVER_ROLE = "DP Driver"
+SIM_ROLE = "DP GPS Simulator"
+
+# Vai trò điều phối được xem lịch sử GPS (dùng cho trang Fleet Map).
+# Muốn CHỈ tài xế tự xem được dữ liệu của mình: đặt DISPATCHER_ROLES = set()
+DISPATCHER_ROLES = {"System Manager", "Fleet Manager"}
+
+
+# ----------------------------------------------------------------------
+# Helpers: xác định user là ai, có được phép xem chuyến/xe nào
+# ----------------------------------------------------------------------
+def _roles():
+    return set(frappe.get_roles(frappe.session.user))
+
+
+def _get_current_driver():
+    """Trả về tên Driver liên kết với user đang đăng nhập, hoặc None."""
+    user = frappe.session.user
+    if user in ("Administrator", "Guest"):
+        return None
+
+    meta = frappe.get_meta("Driver")
+    for field in ("custom_user", "user"):
+        if meta.has_field(field):
+            name = frappe.db.get_value("Driver", {field: user}, "name")
+            if name:
+                return name
+
+    # Fallback: Driver -> Employee -> User
+    if meta.has_field("employee"):
+        emp = frappe.db.get_value("Employee", {"user_id": user}, "name")
+        if emp:
+            return frappe.db.get_value("Driver", {"employee": emp}, "name")
+    return None
+
+
+def _is_dispatcher():
+    return bool(_roles() & DISPATCHER_ROLES)
+
+
+def _is_simulator():
+    return SIM_ROLE in _roles()
+
+
+def _driver_owns_trip(driver, trip):
+    return bool(driver) and frappe.db.get_value("Delivery Trip", trip, "driver") == driver
+
+
+def _driver_owns_vehicle(driver, vehicle):
+    if not driver:
+        return False
+    return bool(frappe.db.exists(
+        "Delivery Trip", {"driver": driver, "vehicle": vehicle, "docstatus": ["<", 2]}
+    ))
+
+
+# ----------------------------------------------------------------------
+# GPS ingest (simulator, điều phối, hoặc chính tài xế của xe đó)
+# ----------------------------------------------------------------------
+@frappe.whitelist(methods=["POST"])
+def log_location():
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Cần đăng nhập hoặc cung cấp API Key để thực hiện"), frappe.PermissionError)
+
+    data = frappe.local.form_dict
+    vehicle = data.get("vehicle")
+    delivery_trip = data.get("delivery_trip")
+    recorded_at = data.get("recorded_at")
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    source_event_id = data.get("source_event_id")
+    source_type = data.get("source_type", "Simulated")
+
+    if not vehicle or not recorded_at or latitude is None or longitude is None or not source_event_id:
+        frappe.throw(_("Thiếu thông tin bắt buộc trong bản tin GPS"))
+
+    try:
+        lat = float(latitude)
+        lng = float(longitude)
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise ValueError()
+    except ValueError:
+        frappe.throw(_("Tọa độ vĩ độ/kinh độ không hợp lệ"))
+
+    if not frappe.db.exists("Vehicle", vehicle):
+        frappe.throw(_("Xe {0} không tồn tại").format(vehicle))
+
+    # Tài xế phải gửi theo đúng chuyến được giao, không chỉ theo chiếc xe từng lái.
+    if not (_is_simulator() or _is_dispatcher()):
+        if not delivery_trip or not _driver_owns_trip(_get_current_driver(), delivery_trip):
+            frappe.throw(_("Bạn chỉ được ghi GPS cho chuyến được phân công."), frappe.PermissionError)
+
+    if delivery_trip:
+        if not frappe.db.exists("Delivery Trip", delivery_trip):
+            frappe.throw(_("Chuyến {0} không tồn tại").format(delivery_trip))
+        trip_doc = frappe.get_doc("Delivery Trip", delivery_trip)
+        if trip_doc.vehicle != vehicle:
+            frappe.throw(_("Xe {0} không thuộc chuyến {1}").format(vehicle, delivery_trip))
+
+    existing = frappe.db.get_value(
+        "GPS Log", {"source_event_id": source_event_id}, ["name", "latitude", "longitude"], as_dict=True
+    )
+    if existing:
+        if float(existing.latitude) == lat and float(existing.longitude) == lng:
+            return {"status": "ignored", "message": "Bản tin trùng lặp đã được xử lý", "source_event_id": source_event_id}
+        else:
+            frappe.throw(
+                _("Xung đột: source_event_id {0} đã tồn tại với nội dung khác").format(source_event_id),
+                frappe.DuplicateEntryError,
+            )
+
+    gps_doc = frappe.get_doc({
+        "doctype": "GPS Log",
+        "vehicle": vehicle,
+        "delivery_trip": delivery_trip,
+        "recorded_at": recorded_at,
+        "latitude": lat,
+        "longitude": lng,
+        "source_event_id": source_event_id,
+        "source_type": source_type,
+    })
+    gps_doc.insert(ignore_permissions=True)
+
+    current_last_time = frappe.db.get_value("Vehicle", vehicle, "custom_last_gps_time")
+    new_time = get_datetime(recorded_at)
+
+    if not current_last_time or new_time >= get_datetime(current_last_time):
+        frappe.db.set_value("Vehicle", vehicle, {
+            "custom_last_lat": lat,
+            "custom_last_lng": lng,
+            "custom_last_gps_time": recorded_at,
+        }, update_modified=False)
+
+    frappe.db.commit()
+    return {"status": "success", "source_event_id": source_event_id, "name": gps_doc.name}
+
+
+# ----------------------------------------------------------------------
+# Lịch sử GPS: chỉ đúng tài xế của xe/chuyến (hoặc điều phối nếu được bật)
+# ----------------------------------------------------------------------
+@frappe.whitelist(methods=["GET", "POST"])
+def get_gps_history(vehicle=None, delivery_trip=None, limit=100):
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Cần đăng nhập"), frappe.PermissionError)
+
+    if not vehicle and not delivery_trip:
+        frappe.throw(_("Cần cung cấp vehicle hoặc delivery_trip"))
+
+    driver = None
+    if not _is_dispatcher():
+        driver = _get_current_driver()
+        if not driver:
+            frappe.throw(_("Bạn không có quyền xem dữ liệu GPS"), frappe.PermissionError)
+        if vehicle and not _driver_owns_vehicle(driver, vehicle):
+            frappe.throw(_("Bạn không có quyền xem GPS của xe {0}").format(vehicle), frappe.PermissionError)
+        if delivery_trip and not _driver_owns_trip(driver, delivery_trip):
+            frappe.throw(_("Chuyến {0} không thuộc về bạn").format(delivery_trip), frappe.PermissionError)
+
+    conditions = []
+    values = {}
+
+    if driver:
+        conditions.append("delivery_trip IN (SELECT name FROM `tabDelivery Trip` WHERE driver = %(driver)s)")
+        values["driver"] = driver
+
+    if vehicle:
+        conditions.append("vehicle = %(vehicle)s")
+        values["vehicle"] = vehicle
+    if delivery_trip:
+        conditions.append("delivery_trip = %(delivery_trip)s")
+        values["delivery_trip"] = delivery_trip
+
+    where_clause = " AND ".join(conditions)
+    values["limit"] = int(limit)
+
+    query = f"""
+        SELECT recorded_at, latitude, longitude, source_type, source_event_id
+        FROM `tabGPS Log`
+        WHERE {where_clause}
+        ORDER BY recorded_at ASC
+        LIMIT %(limit)s
+    """
+
+    return frappe.db.sql(query, values, as_dict=True)
+
+
+# ----------------------------------------------------------------------
+# Trang tài xế: chỉ chính tài xế mới xem/thao tác được chuyến của mình
+# ----------------------------------------------------------------------
+@frappe.whitelist(methods=["GET", "POST"])
+def get_driver_schedule():
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Cần đăng nhập để xem lịch trình"), frappe.PermissionError)
+
+    driver = _get_current_driver()
+    
+    # Strictly enforce driver identity and role check
+    if not driver or DRIVER_ROLE not in _roles():
+        return {"trip": None, "stops": []}
+
+    # Removed ignore_permissions=True to respect User Permissions
+    trips = frappe.get_all(
+        "Delivery Trip",
+        filters={
+            "driver": driver,
+            "docstatus": ["<", 2],
+            "status": ["not in", ["Completed", "Cancelled"]],
+        },
+        fields=["name", "vehicle", "driver_name", "status"],
+        order_by="departure_time desc",
+        limit_page_length=1
+    )
+
+    if not trips:
+        return {"trip": None, "stops": []}
+
+    trip = trips[0]
+    stops = frappe.get_all(
+        "Delivery Stop",
+        filters={"parent": trip["name"], "parenttype": "Delivery Trip"},
+        fields=["name", "idx", "customer", "address", "lat", "lng", "visited"],
+        order_by="idx asc",
+        limit_page_length=100
+    )
+
+    return {"trip": trip, "stops": stops}
+
+
+@frappe.whitelist(methods=["POST"])
+def complete_delivery_stop(stop_name=None):
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Cần đăng nhập để thực hiện thao tác này"), frappe.PermissionError)
+
+    if not stop_name:
+        stop_name = frappe.local.form_dict.get("stop_name")
+
+    if not stop_name or not frappe.db.exists("Delivery Stop", stop_name):
+        frappe.throw(_("Không tìm thấy điểm dừng hợp lệ"))
+
+    parent_trip = frappe.db.get_value("Delivery Stop", stop_name, "parent")
+
+    # Giữ khóa chuyến đến khi cập nhật xong, tránh xác nhận đồng thời với thao tác hủy.
+    trip = frappe.db.get_value(
+        "Delivery Trip", parent_trip, ["driver", "docstatus", "status"],
+        as_dict=True, for_update=True,
+    )
+
+    # Chỉ đúng tài xế của chuyến này mới được đánh dấu (không có ngoại lệ, kể cả quản trị)
+    driver = _get_current_driver()
+    if not trip or not driver or trip.driver != driver:
+        frappe.throw(_("Điểm dừng này không thuộc chuyến của bạn"), frappe.PermissionError)
+
+    if trip.docstatus == 2 or trip.status == "Cancelled":
+        frappe.throw(_("Không thể xác nhận điểm giao của chuyến đã hủy."))
+
+    frappe.db.set_value("Delivery Stop", stop_name, "visited", 1, update_modified=True)
+
+    unvisited_count = frappe.db.count("Delivery Stop", filters={"parent": parent_trip, "visited": 0})
+
+    trip_completed = False
+    if unvisited_count == 0:
+        frappe.db.set_value("Delivery Trip", parent_trip, "status", "Completed", update_modified=True)
+        trip_completed = True
+
+    frappe.db.commit()
+    return {"status": "success", "stop_name": stop_name, "trip_completed": trip_completed}
+
+==> dispatch-app/dp_dispatch/dp_dispatch/page/driver_gps/driver_gps.js <==
+frappe.pages['driver-gps'].on_page_load = function (wrapper) {
+  const page = frappe.ui.make_app_page({
+    parent: wrapper,
+    title: __('Lịch trình Tài xế'),
+    single_column: true
+  });
+
+  $(wrapper).find('.page-content').css({ 'padding': '12px', 'margin': '0' });
+
+  $(page.main).html(`
+    <style>
+      .dp-driver-container {
+        font-family: var(--font-stack, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .dp-trip-card {
+        background: #000000;
+        color: #ffffff;
+        padding: 16px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      }
+      .dp-stop-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .dp-badge-status {
+        display: inline-block;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 700;
+      }
+      .dp-btn-map {
+        background: #000000;
+        color: #ffffff !important;
+        border: 1px solid #000000;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none !important;
+      }
+      .dp-btn-complete {
+        background: #16a34a;
+        color: #ffffff !important;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .dp-btn-complete:hover {
+        background: #15803d;
+      }
+    </style>
+
+    <div class="dp-driver-container">
+      <div class="dp-trip-card">
+        <div style="font-size: 12px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px;">Chuyến hàng đang thực hiện</div>
+        <div id="driver-trip-title" style="font-size: 18px; font-weight: 700; margin-top: 4px;">Đang tải...</div>
+        <div id="driver-vehicle-info" style="font-size: 13px; color: #e4e4e7; margin-top: 2px;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #111827;">📍 Danh sách điểm hẹn</h4>
+        <button id="btn-refresh-driver" class="btn btn-default btn-xs"><i class="fa fa-refresh"></i> Cập nhật</button>
+      </div>
+
+      <div id="driver-stops-list">
+        <div style="text-align: center; color: #9ca3af; padding: 20px;">Đang tải điểm hẹn...</div>
+      </div>
+    </div>
+  `);
+
+  const esc = frappe.utils.escape_html;
+
+  function loadDriverSchedule() {
+    frappe.call({
+      method: 'dp_dispatch.dp_dispatch.api.gps.get_driver_schedule',
+      callback: function (r) {
+        if (!r.message || !r.message.trip) {
+          $('#driver-trip-title').text('Chưa có chuyến hàng');
+          $('#driver-vehicle-info').text('Hiện tại chưa có chuyến xe active được phân công.');
+          $('#driver-stops-list').html('<div style="text-align: center; color: #9ca3af; padding: 30px;">Không có điểm hẹn giao hàng nào.</div>');
+          return;
+        }
+
+        const trip = r.message.trip;
+        const stops = r.message.stops || [];
+
+        $('#driver-trip-title').text(trip.name);
+        $('#driver-vehicle-info').html('<i class="fa fa-truck" style="color:#ffffff; margin-right:4px;"></i> Xe: <b>' + esc(trip.vehicle || 'N/A') + '</b> | Tài xế: ' + esc(trip.driver_name || 'N/A'));
+
+        const container = $('#driver-stops-list').empty();
+
+        if (!stops.length) {
+          container.html('<div style="text-align: center; color: #9ca3af; padding: 20px;">Chuyến hàng chưa cấu hình điểm dừng.</div>');
+          return;
+        }
+
+        stops.forEach(function (s) {
+          const isVisited = s.visited == 1;
+          const statusBg = isVisited ? '#dcfce7' : '#fef3c7';
+          const statusColor = isVisited ? '#15803d' : '#b45309';
+          const statusText = isVisited ? 'Đã hoàn thành' : 'Chờ ghé';
+
+          const mapBtnHtml = (s.lat && s.lng) 
+            ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + s.lat + ',' + s.lng + '" target="_blank" class="dp-btn-map"><i class="fa fa-location-arrow" style="color: #ffffff;"></i> Chỉ đường</a>'
+            : '';
+
+          const actionBtnHtml = isVisited 
+            ? '<span style="font-size: 12px; color: #16a34a; font-weight: 600;"><i class="fa fa-check-circle"></i> Đã đến nơi</span>'
+            : '<button class="dp-btn-complete btn-mark-complete" data-stop-name="' + s.name + '"><i class="fa fa-check"></i> Đánh dấu Đã đến</button>';
+
+          container.append(
+            '<div class="dp-stop-card">' +
+              '<div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
+                '<div>' +
+                  '<span style="font-weight: 700; font-size: 14px; color: #111827;">#' + s.idx + '. ' + esc(s.customer || 'Khách hàng') + '</span>' +
+                '</div>' +
+                '<span class="dp-badge-status" style="background: ' + statusBg + '; color: ' + statusColor + ';">' + statusText + '</span>' +
+              '</div>' +
+              '<div style="font-size: 12px; color: #4b5563; margin-top: 6px; line-height: 1.4;">' +
+                '<i class="fa fa-map-marker" style="color: #6b7280; margin-right: 4px;"></i>' + esc(s.address || 'Chưa cập nhật địa chỉ') +
+              '</div>' +
+              '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #f3f4f6; padding-top: 8px;">' +
+                mapBtnHtml +
+                actionBtnHtml +
+              '</div>' +
+            '</div>'
+          );
+        });
+
+        // Đăng ký sự kiện nút Đánh dấu Hoàn thành
+        $('.btn-mark-complete').off('click').on('click', function () {
+          const stopName = $(this).data('stop-name');
+          const btn = $(this);
+          btn.prop('disabled', true).text('Đang xử lý...');
+
+          frappe.call({
+            method: 'dp_dispatch.dp_dispatch.api.gps.complete_delivery_stop',
+            args: { stop_name: stopName },
+            callback: function (res) {
+              if (res.message && res.message.status === 'success') {
+                frappe.show_alert({ message: __('Đã cập nhật trạng thái điểm dừng!'), indicator: 'green' });
+                if (res.message.trip_completed) {
+                  frappe.msgprint(__('🎉 Chúc mừng! Bạn đã hoàn thành tất cả các điểm dừng trong chuyến hàng!'));
+                }
+                loadDriverSchedule();
+              }
+            }
+          });
+        });
+      }
+    });
+  }
+
+  $('#btn-refresh-driver').on('click', function () {
+    loadDriverSchedule();
+  });
+
+  loadDriverSchedule();
+};
+
+==> dispatch-app/dp_dispatch/dp_dispatch/page/fleet_map/fleet_map.js <==
+frappe.pages['fleet-map'].on_page_load = function (wrapper) {
+  const page = frappe.ui.make_app_page({
+    parent: wrapper,
+    title: __('Fleet map'),
+    single_column: true
+  });
+
+  $(wrapper).find('.page-content').css({ 'padding': '0', 'margin': '0' });$(wrapper).find('.page-head').css({ 'margin-bottom': '2px', 'padding': '6px 15px' });
+
+  $(page.main).html(`
+    <style>
+      .dp-container {
+        padding-bottom: 8px;
+        font-family: var(--font-stack, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+      }
+      .dp-header-bar {
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .dp-btn-black {
+        background: #000000;
+        color: #ffffff;
+        border: 1px solid #000000;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .dp-btn-black:hover { background: #262626; border-color: #262626; color: #ffffff; }
+      .dp-btn-outline-black {
+        background: #ffffff;
+        color: #000000;
+        border: 1px solid #000000;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .dp-btn-outline-black:hover { background: #f4f4f5; color: #000000; }
+
+      .dp-badge-bw {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #f4f4f5;
+        color: #18181b;
+        border: 1px solid #e4e4e7;
+      }
+
+      .dp-badge-simulated {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        display: inline-block;
+      }
+
+      .dp-main-layout {
+        display: flex;
+        gap: 8px;
+        height: calc(100dvh - 186px);
+        min-height: 520px;
+      }
+
+      .dp-sidebar {
+        width: 205px;
+        min-width: 205px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .dp-sidebar-header {
+        padding: 8px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      
+      .dp-search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .dp-search-icon {
+        position: absolute;
+        left: 8px;
+        color: #000000;
+        font-size: 11px;
+        pointer-events: none;
+      }
+      .dp-search-input {
+        width: 100%;
+        padding: 5px 8px 5px 26px;
+        font-size: 11px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        outline: none;
+        background: #ffffff;
+        color: #000000;
+      }
+      .dp-search-input:focus { border-color: #000000; }
+
+      .dp-vehicle-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      .dp-vehicle-item {
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        margin-bottom: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.15s ease;
+      }
+      .dp-vehicle-item:hover { background: #f4f4f5; }
+      .dp-vehicle-item.active { background: #000000; color: #ffffff; }
+      .dp-vehicle-item.active .dp-vehicle-subtext { color: #a1a1aa; }
+
+      .dp-truck-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: #ffffff;
+        font-size: 14px;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      }
+
+      .dp-stop-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #000000;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      }
+
+      .leaflet-control-zoom {
+        border: 1px solid #000000 !important;
+        border-radius: 6px !important;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+      }
+      .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        font-weight: 700 !important;
+        transition: all 0.15s ease;
+      }
+      .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+      }
+
+      .leaflet-popup-content-wrapper {
+        background: #000000 !important;
+        color: #ffffff !important;
+        border-radius: 8px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+        font-family: var(--font-stack, sans-serif);
+      }
+      .leaflet-popup-tip { background: #000000 !important; }
+    </style>
+
+    <div class="dp-container">
+      <div class="dp-header-bar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="btn-refresh" class="dp-btn-black">
+            <i class="fa fa-refresh" style="margin-right: 4px;"></i> Làm mới
+          </button>
+          
+          <div id="vehicle-actions-group" style="display: none; align-items: center; gap: 8px;">
+            <button id="btn-zoom-truck" class="dp-btn-outline-black">
+              <i class="fa fa-search-plus" style="margin-right: 4px;"></i> Zoom Xe
+            </button>
+            <button id="btn-view-history" class="dp-btn-outline-black">
+              <i class="fa fa-history" style="margin-right: 4px;"></i> Lịch sử GPS
+            </button>
+            <button id="btn-zoom-prev" class="dp-btn-outline-black">
+              <i class="fa fa-arrow-left" style="margin-right: 4px;"></i> Zoom Điểm Trước
+            </button>
+            <button id="btn-zoom-next" class="dp-btn-outline-black">
+              <i class="fa fa-arrow-right" style="margin-right: 4px;"></i> Zoom Điểm Kế
+            </button>
+            <button id="btn-hide-info" class="dp-btn-outline-black" style="color: #ef4444; border-color: #ef4444;">
+              <i class="fa fa-eye-slash" style="margin-right: 4px;"></i> Ẩn thông tin
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="selected-vehicle-tag" class="dp-badge-bw" style="display: none; color: #ffffff; transition: all 0.3s ease;">
+            <i class="fa fa-truck" style="color: #ffffff; margin-right: 2px;"></i> <span id="selected-vehicle-name">--</span>
+          </span>
+          <span class="dp-badge-bw">
+            <i class="fa fa-truck"></i> <span id="stat-total">0 xe</span>
+          </span>
+          <span class="dp-badge-bw">
+            <i class="fa fa-circle" style="font-size: 8px; color: #16a34a;"></i> <span id="stat-online">0 Trực tuyến</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="dp-main-layout">
+        <div class="dp-sidebar">
+          <div class="dp-sidebar-header">
+            <div class="dp-search-box">
+              <i class="fa fa-search dp-search-icon"></i>
+              <input type="text" id="vehicle-search" class="dp-search-input" placeholder="Tìm biển số xe..." />
+            </div>
+          </div>
+          <div id="vehicle-list-container" class="dp-vehicle-list">
+            <div style="text-align: center; color: #9ca3af; font-size: 11px; padding: 15px;">Đang tải...</div>
+          </div>
+        </div>
+
+        <div id="dp-map" style="flex: 1; height: 100%; border-radius: 8px; border: 1px solid #e5e7eb; z-index: 1;"></div>
+      </div>
+    </div>
+  `);
+
+  const esc = frappe.utils.escape_html;
+
+  function loadCss(url) {
+    if (!document.querySelector('link[href*="leaflet.css"]')) {
+      const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = url; document.head.appendChild(link);
+    }
+  }
+
+  function loadJs(url, callback) {
+    if (window.L) { callback(); return; }
+    const script = document.createElement('script'); script.src = url; script.onload = callback; document.head.appendChild(script);
+  }
+
+  loadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+  loadJs('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', function() {
+    const map = L.map('dp-map', {
+      zoomControl: false,
+      minZoom: 2,
+      maxZoom: 19
+    }).setView([10.85, 106.75], 9);
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    const mapLang = (frappe.boot && frappe.boot.lang) ? frappe.boot.lang : 'vi';
+
+    L.tileLayer(`https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=${mapLang}`, {
+      minZoom: 2,
+      maxZoom: 19,
+      noWrap: true,
+      attribution: '&copy; Google Maps'
+    }).addTo(map);
+
+    setTimeout(function() { map.invalidateSize(); }, 300);
+
+    const trackLayer = L.layerGroup().addTo(map);
+    const routeLayer = L.layerGroup().addTo(map);
+    const historyLayer = L.layerGroup().addTo(map);
+    
+    const markers = {};
+    const stopMarkersList = [];
+    let vehiclesData = [];
+    
+    let selectedPlate = null;
+    let currentNavIndex = -1;
+
+    function ageMin(t) {
+      if (!t) return Infinity;
+      const now = moment(frappe.datetime.now_datetime().toString().slice(0, 19)); 
+      return now.diff(moment(String(t).slice(0, 19)), 'minutes');
+    }
+
+    function formatTimeAgo(time) {
+      const m = ageMin(time);
+      if (!isFinite(m)) return 'Mất tín hiệu';
+      if (m < 60) {
+        return `${m} phút trước`;
+      }
+      const hrs = Math.floor(m / 60);
+      const mins = m % 60;
+      return `${hrs} giờ ${mins} phút trước`;
+    }
+
+    function getStatusColor(status, time) {
+      const st = String(status || '').toLowerCase();
+      if (st.includes('bảo dưỡng') || st.includes('sửa chữa') || st.includes('maintenance')) return '#ea580c';
+      if (st.includes('hỏng') || st.includes('sự cố') || st.includes('out of service') || st.includes('breakdown')) return '#dc2626';
+      const m = ageMin(time);
+      return m < 5 ? '#16a34a' : '#000000';
+    }
+
+    function canDrawRoute(v) {
+      const st = String(v.status || '').toLowerCase();
+      const isAvailable = !st || st.includes('khả dụng') || st.includes('available');
+      const isOnline = ageMin(v.time) < 5;
+      return isAvailable || isOnline;
+    }
+
+    function createTruckIcon(color) {
+      return L.divIcon({
+        className: 'custom-dp-truck-icon',
+        html: `<div class="dp-truck-marker" style="background-color: ${color};"><i class="fa fa-truck" style="color: #ffffff;"></i></div>`,
+        iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18]
+      });
+    }
+
+    function createStopIcon(seq) {
+      return L.divIcon({
+        className: 'custom-dp-stop-icon',
+        html: `<div class="dp-stop-marker" style="color: #ffffff;">${seq}</div>`,
+        iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14]
+      });
+    }
+
+    function getTruckPopupHtml(v) {
+      const timeAgoText = formatTimeAgo(v.time);
+      const color = getStatusColor(v.status, v.time);
+      
+      const simBadgeHtml = (v.source_type === 'Simulated') 
+        ? `<span class="dp-badge-simulated" style="margin-left: 4px;">Mô phỏng</span>` 
+        : '';
+
+      return `
+        <div style="padding: 6px 8px; min-width: 220px;">
+          <div style="border-bottom: 1px solid #333333; padding-bottom: 8px; margin-bottom: 8px;">
+            <div style="color: #ffffff; font-size: 15px; font-weight: 700; margin-bottom: 6px;">
+              <i class="fa fa-truck" style="color: #ffffff; margin-right: 6px;"></i>${esc(v.plate)}
+            </div>
+            <div>
+              <span style="background: ${color}; color: #ffffff; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; display: inline-block;"> 
+                ${esc(v.status || 'Khả dụng')}
+              </span>
+              ${simBadgeHtml}
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #d4d4d8; line-height: 1.6;">
+            <div>Tín hiệu: <b>${timeAgoText}</b></div>
+            <div>Thiết bị: ${esc(v.device || 'N/A')}</div>
+            <div>Tọa độ: ${v.lat ? v.lat.toFixed(5) : '0'}, ${v.lng ? v.lng.toFixed(5) : '0'}</div>
+          </div>
+        </div>`;
+    }
+
+    function selectVehicle(plate, preserveView) {
+      const v = vehiclesData.find(item => item.plate === plate);
+      if (!v) return;
+
+      if (!preserveView) {
+        map.closePopup();
+      }
+      routeLayer.clearLayers();
+      trackLayer.clearLayers();
+      historyLayer.clearLayers();
+      stopMarkersList.length = 0;
+
+      selectedPlate = plate;
+      currentNavIndex = -1;
+
+      $('.dp-vehicle-item').removeClass('active');$(`.dp-vehicle-item[data-plate="${plate}"]`).addClass('active');
+
+      const statusColor = getStatusColor(v.status, v.time);
+      $('#selected-vehicle-name').text(plate);
+      $('#selected-vehicle-tag').css({
+        'background-color': statusColor,
+        'border-color': statusColor
+      }).show();
+
+      $('#vehicle-actions-group').css('display', 'inline-flex');
+
+      if (canDrawRoute(v)) {
+        drawRouteFromTruck(plate, v.lat, v.lng);
+      } else {
+        if (markers[plate] && !preserveView) {
+          map.setView([v.lat, v.lng], 15);
+          markers[plate].openPopup();
+        }
+      }
+    }
+
+    function loadGpsHistory(plate) {
+      historyLayer.clearLayers();
+      frappe.call({
+        method: 'dp_dispatch.dp_dispatch.api.gps.get_gps_history',
+        args: { vehicle: plate, limit: 200 },
+        callback: function(r) {
+          if (!r.message || !r.message.length) {
+            return frappe.show_alert({ message: __('Không có dữ liệu lịch sử GPS Log'), indicator: 'orange' });
+          }
+          const pts = r.message.map(p => [p.latitude, p.longitude]);
+          const polyline = L.polyline(pts, { color: '#2563eb', weight: 4, opacity: 0.8 }).addTo(historyLayer);
+          
+          pts.forEach((pt, i) => {
+            L.circleMarker(pt, { radius: 4, color: '#1d4ed8', fillColor: '#ffffff', fillOpacity: 1 }).addTo(historyLayer)
+              .bindPopup(`<b style="color:#ffffff;"><i class="fa fa-map-marker" style="color:#ffffff; margin-right:4px;"></i>Điểm GPS #${i+1}</b><br>Thời gian: ${r.message[i].recorded_at}<br>Nguồn: ${r.message[i].source_type}`);
+          });
+
+          map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+          frappe.show_alert({ message: __('Đã tải {0} điểm lịch sử GPS Log', [r.message.length]), indicator: 'green' });
+        }
+      });
+    }
+
+    function renderVehicleList(filterKeyword) {
+      const container = $('#vehicle-list-container');
+      container.empty();
+
+      // ÉP SẮP XẾP TẤT CẢ XE THEO MÃ BIỂN SỐ/ID (A-Z, 0-9)
+      const sortedData = vehiclesData.slice().sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true, sensitivity: 'base' }));
+
+      const filtered = sortedData.filter(v => {
+        if (!filterKeyword) return true;
+        return v.plate.toLowerCase().includes(filterKeyword.toLowerCase());
+      });
+
+      if (!filtered.length) {
+        container.html('<div style="text-align: center; color: #9ca3af; font-size: 11px; padding: 15px;">Không thấy xe</div>');
+        return;
+      }
+
+      filtered.forEach(v => {
+        const color = getStatusColor(v.status, v.time);
+        const timeAgoText = formatTimeAgo(v.time);
+        const isActive = v.plate === selectedPlate ? 'active' : '';
+
+        const itemHtml = `
+          <div class="dp-vehicle-item ${isActive}" data-plate="${esc(v.plate)}">
+            <div>
+              <div style="font-weight: 700; font-size: 12px;">🚛 ${esc(v.plate)}</div>
+              <div class="dp-vehicle-subtext" style="font-size: 10px; color: #6b7280; margin-top: 1px;">
+                ${timeAgoText}
+              </div>
+            </div>
+            <span style="background: ${color}; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+          </div>
+        `;
+        container.append(itemHtml);
+      });
+    }
+
+    function upsertVehicle(v) {
+      if (!v.lat || !v.lng) return;
+      let m = markers[v.plate];
+      const color = getStatusColor(v.status, v.time);
+
+      if (!m) {
+        m = L.marker([v.lat, v.lng], { icon: createTruckIcon(color) }).addTo(map);
+        m.bindPopup(function() { return getTruckPopupHtml(m._dp); });
+
+        m.on('click', function() {
+          selectVehicle(v.plate);
+        });
+
+        markers[v.plate] = m;
+      } else {
+        m.setLatLng([v.lat, v.lng]);
+        m.setIcon(createTruckIcon(color));
+      }
+      m._dp = Object.assign(m._dp || {}, v);
+    }
+
+    function loadVehicles(isRefresh) {
+      return frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+          doctype: 'Vehicle',
+          fields: ['name', 'custom_technical_status', 'custom_gps_device_id', 'custom_last_lat', 'custom_last_lng', 'custom_last_gps_time'],
+          order_by: 'name asc',
+          limit_page_length: 500
+        },
+        callback: function(r) {
+          if (!r.message) return;
+          let online = 0;
+          vehiclesData = [];
+
+          const promises = r.message.map(function(row) {
+            if (row.custom_last_lat && row.custom_last_lng) {
+              const vObj = {
+                plate: row.name,
+                status: row.custom_technical_status,
+                device: row.custom_gps_device_id,
+                lat: row.custom_last_lat,
+                lng: row.custom_last_lng,
+                time: row.custom_last_gps_time,
+                source_type: 'Hardware GPS'
+              };
+
+              return frappe.db.get_value('GPS Log', { vehicle: row.name }, 'source_type')
+                .then(function(res) {
+                  if (res && res.message && res.message.source_type) {
+                    vObj.source_type = res.message.source_type;
+                  }
+                  vehiclesData.push(vObj);
+                  upsertVehicle(vObj);
+                  if (ageMin(row.custom_last_gps_time) < 5) online++;
+                });
+            }
+            return Promise.resolve();
+          });
+
+          Promise.all(promises).then(function() {
+            $('#stat-total').text(r.message.length + ' xe');
+            $('#stat-online').text(online + ' Trực tuyến');
+            renderVehicleList($('#vehicle-search').val());
+
+            const pts = Object.values(markers).map(m => m.getLatLng());
+            if (pts.length && !loadVehicles.fitted) {
+              map.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 13 }); 
+              loadVehicles.fitted = true;
+            }
+
+            if (isRefresh && selectedPlate) {
+              selectVehicle(selectedPlate, true);
+            }
+          });
+        }
+      });
+    }
+
+    function calcDist(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function optimizeRoute(startLat, startLng, stops) {
+      let unvisited = stops.slice();
+      let currentLat = startLat;
+      let currentLng = startLng;
+      let orderedRoute = [];
+
+      while (unvisited.length > 0) {
+        let nearestIdx = 0;
+        let minD = Infinity;
+
+        for (let i = 0; i < unvisited.length; i++) {
+          let d = calcDist(currentLat, currentLng, unvisited[i].lat, unvisited[i].lng);
+          if (d < minD) {
+            minD = d;
+            nearestIdx = i;
+          }
+        }
+
+        let nextStop = unvisited.splice(nearestIdx, 1)[0];
+        currentLat = nextStop.lat;
+        currentLng = nextStop.lng;
+        orderedRoute.push(nextStop);
+      }
+      return orderedRoute;
+    }
+
+    function drawRouteFromTruck(plate, truckLat, truckLng) {
+      routeLayer.clearLayers();
+      stopMarkersList.length = 0;
+
+      frappe.db.get_list('Delivery Trip', {
+        filters: { vehicle: plate, docstatus: ['<', 2] },
+        fields: ['name', 'driver_name', 'departure_time'],
+        order_by: 'creation desc',
+        limit: 1
+      }).then(function(trips) {
+        if (!trips || !trips.length) {
+          if (markers[plate]) {
+            map.setView([truckLat, truckLng], 15);
+          }
+          return frappe.show_alert({ message: __('Xe {0} chưa có chuyến giao hàng active', [plate]), indicator: 'orange' });
+        }
+
+        const trip = trips[0];
+        frappe.db.get_list('Delivery Stop', {
+          parent_doctype: 'Delivery Trip',
+          filters: { parent: trip.name },
+          fields: ['idx', 'customer', 'lat', 'lng', 'address'],
+          limit: 100
+        }).then(function(stops) {
+          const validStops = stops.filter(s => s.lat && s.lng);
+          if (!validStops.length) {
+            if (markers[plate]) {
+              map.setView([truckLat, truckLng], 15);
+            }
+            return frappe.show_alert({ message: __('Chuyến {0} chưa có tọa độ điểm giao hàng', [trip.name]), indicator: 'orange' });
+          }
+
+          const sortedStops = optimizeRoute(truckLat, truckLng, validStops);
+          const path = [[truckLat, truckLng]].concat(sortedStops.map(s => [s.lat, s.lng]));
+          const polyline = L.polyline(path, { color: '#18181b', weight: 4, dashArray: '6, 6', opacity: 0.85 }).addTo(routeLayer);
+
+          sortedStops.forEach(function(s, seq) {
+            const seqNum = seq + 1;
+            const sm = L.marker([s.lat, s.lng], { icon: createStopIcon(seqNum) }).addTo(routeLayer)
+              .bindPopup(`
+                <div style="padding: 4px; min-width: 180px;">
+                  <b style="color: #ffffff; font-size: 13px;">
+                    <i class="fa fa-map-marker" style="color: #ffffff; margin-right: 6px;"></i>Điểm ghé #${seqNum}
+                  </b>
+                  <div style="font-size: 11px; color: #d4d4d8; margin-top: 4px;"> 
+                    <div>Khách hàng: <b>${esc(s.customer || 'N/A')}</b></div>
+                    <div>Địa chỉ: ${esc(s.address || 'N/A')}</div>
+                  </div>
+                </div>
+              `);
+            stopMarkersList.push(sm);
+          });
+
+          map.fitBounds(polyline.getBounds(), { padding: [80, 80], maxZoom: 14 });
+        });
+      });
+    }
+
+    $(document).on('click', '.dp-vehicle-item', function() {
+      const plate = $(this).data('plate');
+      selectVehicle(plate);
+    });
+
+    $('#vehicle-search').on('input', function() {
+      renderVehicleList($(this).val());
+    });
+
+    $('#btn-zoom-truck').on('click', function() {
+      if (selectedPlate && markers[selectedPlate]) {
+        currentNavIndex = -1;
+        const m = markers[selectedPlate];
+        map.setView(m.getLatLng(), 15);
+        m.openPopup();
+      }
+    });
+
+    $('#btn-view-history').on('click', function() {
+      if (selectedPlate) {
+        loadGpsHistory(selectedPlate);
+      }
+    });
+
+    $('#btn-zoom-next').on('click', function() {
+      if (!stopMarkersList.length) {
+        return frappe.show_alert({ message: __('Xe chưa có điểm giao hàng active'), indicator: 'orange' });
+      }
+      if (currentNavIndex < stopMarkersList.length - 1) {
+        currentNavIndex++;
+      }
+      const sm = stopMarkersList[currentNavIndex];
+      if (sm) {
+        map.setView(sm.getLatLng(), 15);
+        sm.openPopup();
+      }
+    });
+
+    $('#btn-zoom-prev').on('click', function() {
+      if (!stopMarkersList.length) {
+        return frappe.show_alert({ message: __('Xe chưa có điểm giao hàng active'), indicator: 'orange' });
+      }
+      if (currentNavIndex > 0) {
+        currentNavIndex--;
+        const sm = stopMarkersList[currentNavIndex];
+        if (sm) {
+          map.setView(sm.getLatLng(), 15);
+          sm.openPopup();
+        }
+      } else {
+        currentNavIndex = -1;
+        if (selectedPlate && markers[selectedPlate]) {
+          const m = markers[selectedPlate];
+          map.setView(m.getLatLng(), 15);
+          m.openPopup();
+        }
+      }
+    });
+
+    $('#btn-hide-info').on('click', function() {
+      map.closePopup();
+      trackLayer.clearLayers();
+      routeLayer.clearLayers();
+      historyLayer.clearLayers();
+      selectedPlate = null;
+      currentNavIndex = -1;
+      stopMarkersList.length = 0;
+      $('.dp-vehicle-item').removeClass('active');$('#selected-vehicle-tag').hide();
+      $('#vehicle-actions-group').hide();
+    });
+
+    $('#btn-refresh').on('click', function() {
+      loadVehicles(true);
+    });
+
+    loadVehicles(false);
+  });
+};
+
+==> dispatch-app/dp_dispatch/dp_dispatch/public/js/delivery_trip.js <==
+frappe.provide('dp_gps');
+
+dp_gps.load_leaflet = function () {
+  const CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  const JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  if (!document.querySelector('link[href="' + CSS + '"]')) {
+    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = CSS; document.head.appendChild(l);
+  }
+  return new Promise((resolve, reject) => {
+    if (window.L) return resolve();
+    const s = document.createElement('script'); s.src = JS; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+};
+
+dp_gps.show_trip_map = async function (frm) {
+  try { await dp_gps.load_leaflet(); } catch (e) { return frappe.msgprint(__('Cannot load Leaflet')); }
+  const esc = frappe.utils.escape_html;
+  const stops = (frm.doc.delivery_stops || []).filter(s => s.lat && s.lng);
+  const hasOrigin = frm.doc.custom_origin_lat && frm.doc.custom_origin_lng;
+  const track = await frappe.db.get_list('GPS Location Log', {
+    filters: { delivery_trip: frm.doc.name }, fields: ['latitude', 'longitude'],
+    order_by: 'recorded_at asc', limit: 3000 });
+  let veh = null;
+  if (frm.doc.vehicle) {
+    const r = await frappe.db.get_value('Vehicle', frm.doc.vehicle,
+      ['custom_last_lat', 'custom_last_lng', 'custom_last_gps_time']);
+    veh = r.message;
+  }
+  if (!stops.length && !track.length) return frappe.msgprint(__('This trip has no coordinates yet'));
+
+  const d = new frappe.ui.Dialog({
+    title: __('Trip map: {0}', [frm.doc.name]), size: 'extra-large',
+    fields: [{ fieldtype: 'HTML', fieldname: 'map_html' }] });
+  d.fields_dict.map_html.$wrapper.html(
+    '<div id="dp-trip-map" style="height:60vh;min-height:360px;border-radius:8px"></div>' +
+    '<div class="text-muted small" style="margin-top:6px">' +
+    __('Dashed red: planned route') + ' · ' + __('Blue: GPS track') + ' · ' + __('Green dot: last vehicle position') +
+    '</div>');
+  d.show();
+
+  setTimeout(() => {
+    const map = L.map('dp-trip-map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    const all = [];
+    const o = hasOrigin ? [frm.doc.custom_origin_lat, frm.doc.custom_origin_lng] : null;
+    const path = (o ? [o] : []).concat(stops.map(s => [s.lat, s.lng]), o ? [o] : []);
+    if (path.length > 1) {
+      L.polyline(path, { color: '#dc2626', weight: 3, dashArray: '6 6' }).addTo(map);
+      path.forEach(p => all.push(p));
+    }
+    if (o) L.marker(o).addTo(map).bindPopup(__('Depot'));
+    stops.forEach(s => L.marker([s.lat, s.lng]).addTo(map).bindPopup(
+      '#' + s.idx + ' ' + esc(s.customer || '') +
+      (s.estimated_arrival ? '<br>ETA: ' + esc(String(s.estimated_arrival)) : '')));
+    if (track.length > 1) {
+      const pts = track.map(p => [p.latitude, p.longitude]);
+      L.polyline(pts, { color: '#2563eb', weight: 4 }).addTo(map);
+      pts.forEach(p => all.push(p));
+    }
+    if (veh && veh.custom_last_lat && veh.custom_last_lng) {
+      const p = [veh.custom_last_lat, veh.custom_last_lng];
+      L.circleMarker(p, { radius: 9, weight: 2, color: '#111', fillColor: '#16a34a', fillOpacity: 0.9 })
+        .addTo(map).bindPopup(esc(frm.doc.vehicle) + '<br>' + esc(String(veh.custom_last_gps_time || '')));
+      all.push(p);
+    }
+    map.invalidateSize();
+    map.fitBounds(L.latLngBounds(all), { padding: [30, 30] });
+  }, 300);
+};
+
+// Form Trigger
+frappe.ui.form.on('Delivery Trip', {
+  refresh(frm) {
+    if (frm.is_new()) return;
+    frm.add_custom_button(__('View Map'), () => dp_gps.show_trip_map(frm), __('GPS'));
+    frm.add_custom_button(__('Fleet Map'), () => frappe.set_route('fleet-map'), __('GPS'));
+  }
+});
+
+// List Trigger
+frappe.listview_settings['Delivery Trip'] = frappe.listview_settings['Delivery Trip'] || {};
+(function () {
+  const settings = frappe.listview_settings['Delivery Trip'];
+  const previous = settings.onload;
+  settings.onload = function (listview) {
+    if (previous) previous(listview);
+    listview.page.add_inner_button(__('Fleet Map'), () => frappe.set_route('fleet-map'));
+  };
+})();
+==> operations-app/Dockerfile <==
+FROM logistics-erpnext:dispatch-v1
+
+COPY --chown=frappe:frappe . /home/frappe/frappe-bench/apps/dp_operations
+
+RUN /home/frappe/frappe-bench/env/bin/pip install flit_core \
+    && /home/frappe/frappe-bench/env/bin/pip install \
+        --no-deps --no-build-isolation \
+        -e /home/frappe/frappe-bench/apps/dp_operations
+
+==> local.yaml <==
+services:
+  configurator:
+    image: logistics-erpnext:dispatch-v1
+  backend:
+    image: logistics-erpnext:dispatch-v1
+  websocket:
+    image: logistics-erpnext:dispatch-v1
+  queue-short:
+    image: logistics-erpnext:dispatch-v1
+  queue-long:
+    image: logistics-erpnext:dispatch-v1
+  scheduler:
+    image: logistics-erpnext:dispatch-v1
+  frontend:
+    image: logistics-erpnext:dispatch-v1
+    ports:
+      - "127.0.0.1:8085:8080"
+    environment:
+      FRAPPE_SITE_NAME_HEADER: logistics.localhost
+  db:
+    image: mariadb:10.6
+    environment:
+      MARIADB_AUTO_UPGRADE: "0"
+  redis-cache:
+    image: redis:6.2-alpine
+  redis-queue:
+    image: redis:6.2-alpine

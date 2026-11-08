@@ -1,0 +1,10 @@
+{
+  "base_url": "http://localhost:8086",
+  "site": "gps-review.localhost",
+  "vehicle": "DEMO-GPS-01",
+  "delivery_trip": "MAT-DT-2026-00001",
+  "interval_seconds": 5,
+  "time_zone": "Asia/Ho_Chi_Minh",
+  "api_key": "",
+  "api_secret": ""
+}

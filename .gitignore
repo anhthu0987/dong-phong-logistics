@@ -16,6 +16,8 @@
 *.zip
 *.pem
 *.key
+**/gps_config.local.json
+**/gps_config.json
 __pycache__/
 *.pyc
 *.egg-info/

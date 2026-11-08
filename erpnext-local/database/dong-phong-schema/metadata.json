@@ -1,0 +1,4290 @@
+{
+  "Company": {
+    "fields": [
+      {
+        "fieldname": "company_name",
+        "label": "Company",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "abbr",
+        "label": "Abbr",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "default_currency",
+        "label": "Default Currency",
+        "fieldtype": "Link",
+        "options": "Currency",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "country",
+        "label": "Country",
+        "fieldtype": "Link",
+        "options": "Country",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "is_group",
+        "label": "Is Group",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_holiday_list",
+        "label": "Default Holiday List",
+        "fieldtype": "Link",
+        "options": "Holiday List",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_letter_head",
+        "label": "Default Letter Head",
+        "fieldtype": "Link",
+        "options": "Letter Head",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "tax_id",
+        "label": "Tax ID",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "domain",
+        "label": "Domain",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "date_of_establishment",
+        "label": "Date of Establishment",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "parent_company",
+        "label": "Parent Company",
+        "fieldtype": "Link",
+        "options": "Company",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "company_logo",
+        "label": "Company Logo",
+        "fieldtype": "Attach Image",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "date_of_incorporation",
+        "label": "Date of Incorporation",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "phone_no",
+        "label": "Phone No",
+        "fieldtype": "Data",
+        "options": "Phone",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "email",
+        "label": "Email",
+        "fieldtype": "Data",
+        "options": "Email",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "company_description",
+        "label": "Company Description",
+        "fieldtype": "Text Editor",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "date_of_commencement",
+        "label": "Date of Commencement",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "fax",
+        "label": "Fax",
+        "fieldtype": "Data",
+        "options": "Phone",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "website",
+        "label": "Website",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "registration_details",
+        "label": "Registration Details",
+        "fieldtype": "Code",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "lft",
+        "label": "Lft",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "rgt",
+        "label": "Rgt",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "old_parent",
+        "label": "old_parent",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "create_chart_of_accounts_based_on",
+        "label": "Create Chart Of Accounts Based On",
+        "fieldtype": "Select",
+        "options": "\nStandard Template\nExisting Company",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "existing_company",
+        "label": "Existing Company ",
+        "fieldtype": "Link",
+        "options": "Company",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "chart_of_accounts",
+        "label": "Chart Of Accounts Template",
+        "fieldtype": "Select",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_bank_account",
+        "label": "Default Bank Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_cash_account",
+        "label": "Default Cash Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_receivable_account",
+        "label": "Default Receivable Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_payable_account",
+        "label": "Default Payable Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "write_off_account",
+        "label": "Write Off Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "unrealized_profit_loss_account",
+        "label": "Unrealized Profit / Loss Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "allow_account_creation_against_child_company",
+        "label": "Allow Account Creation Against Child Company",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_expense_account",
+        "label": "Default Cost of Goods Sold Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_income_account",
+        "label": "Default Income Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_discount_account",
+        "label": "Default Payment Discount Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "payment_terms",
+        "label": "Default Payment Terms Template",
+        "fieldtype": "Link",
+        "options": "Payment Terms Template",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "cost_center",
+        "label": "Default Cost Center",
+        "fieldtype": "Link",
+        "options": "Cost Center",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_finance_book",
+        "label": "Default Finance Book",
+        "fieldtype": "Link",
+        "options": "Finance Book",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "exchange_gain_loss_account",
+        "label": "Exchange Gain / Loss Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "unrealized_exchange_gain_loss_account",
+        "label": "Unrealized Exchange Gain/Loss Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "round_off_account",
+        "label": "Round Off Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "round_off_cost_center",
+        "label": "Round Off Cost Center",
+        "fieldtype": "Link",
+        "options": "Cost Center",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "round_off_for_opening",
+        "label": "Round Off for Opening",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_deferred_revenue_account",
+        "label": "Default Deferred Revenue Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_deferred_expense_account",
+        "label": "Default Deferred Expense Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "book_advance_payments_in_separate_party_account",
+        "label": "Book Advance Payments in Separate Party Account",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "reconcile_on_advance_payment_date",
+        "label": "Reconcile on Advance Payment Date",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "reconciliation_takes_effect_on",
+        "label": "Reconciliation Takes Effect On",
+        "fieldtype": "Select",
+        "options": "Advance Payment Date\nOldest Of Invoice Or Advance\nReconciliation Date",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_advance_received_account",
+        "label": "Default Advance Received Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_advance_paid_account",
+        "label": "Default Advance Paid Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "auto_exchange_rate_revaluation",
+        "label": "Auto Create Exchange Rate Revaluation",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "auto_err_frequency",
+        "label": "Frequency",
+        "fieldtype": "Select",
+        "options": "Daily\nWeekly\nMonthly",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "submit_err_jv",
+        "label": "Submit ERR Journals?",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "exception_budget_approver_role",
+        "label": "Exception Budget Approver Role",
+        "fieldtype": "Link",
+        "options": "Role",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "accumulated_depreciation_account",
+        "label": "Accumulated Depreciation Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "depreciation_expense_account",
+        "label": "Depreciation Expense Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "series_for_depreciation_entry",
+        "label": "Series for Asset Depreciation Entry (Journal Entry)",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "expenses_included_in_asset_valuation",
+        "label": "Expenses Included In Asset Valuation",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "disposal_account",
+        "label": "Gain/Loss Account on Asset Disposal",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "depreciation_cost_center",
+        "label": "Asset Depreciation Cost Center",
+        "fieldtype": "Link",
+        "options": "Cost Center",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "capital_work_in_progress_account",
+        "label": "Capital Work In Progress Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "asset_received_but_not_billed",
+        "label": "Asset Received But Not Billed",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_buying_terms",
+        "label": "Default Buying Terms",
+        "fieldtype": "Link",
+        "options": "Terms and Conditions",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "sales_monthly_history",
+        "label": "Sales Monthly History",
+        "fieldtype": "Small Text",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "monthly_sales_target",
+        "label": "Monthly Sales Target",
+        "fieldtype": "Currency",
+        "options": "default_currency",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "total_monthly_sales",
+        "label": "Total Monthly Sales",
+        "fieldtype": "Currency",
+        "options": "default_currency",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_selling_terms",
+        "label": "Default Selling Terms",
+        "fieldtype": "Link",
+        "options": "Terms and Conditions",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_sales_contact",
+        "label": "Default Sales Contact",
+        "fieldtype": "Link",
+        "options": "Contact",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_warehouse_for_sales_return",
+        "label": "Default Warehouse for Sales Return",
+        "fieldtype": "Link",
+        "options": "Warehouse",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "credit_limit",
+        "label": "Credit Limit",
+        "fieldtype": "Currency",
+        "options": "default_currency",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "transactions_annual_history",
+        "label": "Transactions Annual History",
+        "fieldtype": "Code",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "enable_perpetual_inventory",
+        "label": "Enable Perpetual Inventory",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "enable_provisional_accounting_for_non_stock_items",
+        "label": "Enable Provisional Accounting For Non Stock Items",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_inventory_account",
+        "label": "Default Inventory Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "stock_adjustment_account",
+        "label": "Stock Adjustment Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_in_transit_warehouse",
+        "label": "Default In-Transit Warehouse",
+        "fieldtype": "Link",
+        "options": "Warehouse",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "stock_received_but_not_billed",
+        "label": "Stock Received But Not Billed",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_provisional_account",
+        "label": "Default Provisional Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "expenses_included_in_valuation",
+        "label": "Expenses Included In Valuation",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_operating_cost_account",
+        "label": "Default Operating Cost Account",
+        "fieldtype": "Link",
+        "options": "Account",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "company_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "UNI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "abbr",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_currency",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "country",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "is_group",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "default_holiday_list",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_letter_head",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "tax_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "domain",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "date_of_establishment",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parent_company",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "company_logo",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "date_of_incorporation",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "phone_no",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "email",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "company_description",
+        "Type": "longtext",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "date_of_commencement",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "fax",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "website",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "registration_details",
+        "Type": "longtext",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "lft",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "MUL",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "rgt",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "MUL",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "old_parent",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "create_chart_of_accounts_based_on",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "existing_company",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "chart_of_accounts",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_bank_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_cash_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_receivable_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_payable_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "write_off_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "unrealized_profit_loss_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "allow_account_creation_against_child_company",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "default_expense_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_income_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_discount_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "payment_terms",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "cost_center",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_finance_book",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "exchange_gain_loss_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "unrealized_exchange_gain_loss_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "round_off_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "round_off_cost_center",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "round_off_for_opening",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_deferred_revenue_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_deferred_expense_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "book_advance_payments_in_separate_party_account",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "reconcile_on_advance_payment_date",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "reconciliation_takes_effect_on",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "Oldest Of Invoice Or Advance",
+        "Extra": ""
+      },
+      {
+        "Field": "default_advance_received_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_advance_paid_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "auto_exchange_rate_revaluation",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "auto_err_frequency",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "submit_err_jv",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "exception_budget_approver_role",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "accumulated_depreciation_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "depreciation_expense_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "series_for_depreciation_entry",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "expenses_included_in_asset_valuation",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "disposal_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "depreciation_cost_center",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "capital_work_in_progress_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "asset_received_but_not_billed",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_buying_terms",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "sales_monthly_history",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "monthly_sales_target",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "total_monthly_sales",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "default_selling_terms",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_sales_contact",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_warehouse_for_sales_return",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "credit_limit",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "transactions_annual_history",
+        "Type": "longtext",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "enable_perpetual_inventory",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "1",
+        "Extra": ""
+      },
+      {
+        "Field": "enable_provisional_accounting_for_non_stock_items",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "default_inventory_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "stock_adjustment_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_in_transit_warehouse",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "stock_received_but_not_billed",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_provisional_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "expenses_included_in_valuation",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_operating_cost_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  },
+  "Vehicle": {
+    "fields": [
+      {
+        "fieldname": "license_plate",
+        "label": "License Plate",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "make",
+        "label": "Make",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "model",
+        "label": "Model",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_payload_capacity_kg",
+        "label": "Payload Capacity (kg)",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_technical_status",
+        "label": "Technical Status",
+        "fieldtype": "Select",
+        "options": "Available\nUnder Maintenance\nOut of Service",
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_gps_device_id",
+        "label": "GPS Device ID",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_last_lat",
+        "label": "Last GPS Latitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "custom_last_lng",
+        "label": "Last GPS Longitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "custom_last_gps_time",
+        "label": "Last GPS Time",
+        "fieldtype": "Datetime",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "last_odometer",
+        "label": "Odometer Value (Last)",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "acquisition_date",
+        "label": "Acquisition Date",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "location",
+        "label": "Location",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "chassis_no",
+        "label": "Chassis No",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "vehicle_value",
+        "label": "Vehicle Value",
+        "fieldtype": "Currency",
+        "options": "",
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "employee",
+        "label": "Employee",
+        "fieldtype": "Link",
+        "options": "Employee",
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "insurance_company",
+        "label": "Insurance Company",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "policy_no",
+        "label": "Policy No",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "start_date",
+        "label": "Start Date",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "end_date",
+        "label": "End Date",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "fuel_type",
+        "label": "Fuel Type",
+        "fieldtype": "Select",
+        "options": "Petrol\nDiesel\nNatural Gas\nElectric",
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "uom",
+        "label": "Fuel UOM",
+        "fieldtype": "Link",
+        "options": "UOM",
+        "reqd": 1,
+        "precision": ""
+      },
+      {
+        "fieldname": "carbon_check_date",
+        "label": "Last Carbon Check",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "color",
+        "label": "Color",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "wheels",
+        "label": "Wheels",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "doors",
+        "label": "Doors",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "amended_from",
+        "label": "Amended From",
+        "fieldtype": "Link",
+        "options": "Vehicle",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "license_plate",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "UNI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "make",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "model",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "last_odometer",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "acquisition_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "location",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "chassis_no",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "vehicle_value",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "employee",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "insurance_company",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "policy_no",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "start_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "end_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "fuel_type",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "uom",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "carbon_check_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "color",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "wheels",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "doors",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "amended_from",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "custom_payload_capacity_kg",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_technical_status",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "Available",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_gps_device_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "custom_last_lat",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_last_lng",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_last_gps_time",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  },
+  "Driver": {
+    "fields": [
+      {
+        "fieldname": "naming_series",
+        "label": "Series",
+        "fieldtype": "Select",
+        "options": "HR-DRI-.YYYY.-",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "full_name",
+        "label": "Full Name",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "status",
+        "label": "Status",
+        "fieldtype": "Select",
+        "options": "Active\nSuspended\nLeft",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "transporter",
+        "label": "Transporter",
+        "fieldtype": "Link",
+        "options": "Supplier",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "employee",
+        "label": "Employee",
+        "fieldtype": "Link",
+        "options": "Employee",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "cell_number",
+        "label": "Cellphone Number",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "address",
+        "label": "Address",
+        "fieldtype": "Link",
+        "options": "Address",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "license_number",
+        "label": "License Number",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "issuing_date",
+        "label": "Issuing Date",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "expiry_date",
+        "label": "Expiry Date",
+        "fieldtype": "Date",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "driving_license_category",
+        "label": "Driving License Category",
+        "fieldtype": "Table",
+        "options": "Driving License Category",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "naming_series",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "full_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "status",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "transporter",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "employee",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "cell_number",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "address",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "license_number",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "issuing_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "expiry_date",
+        "Type": "date",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  },
+  "Delivery Trip": {
+    "fields": [
+      {
+        "fieldname": "naming_series",
+        "label": "Series",
+        "fieldtype": "Select",
+        "options": "MAT-DT-.YYYY.-",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "company",
+        "label": "Company",
+        "fieldtype": "Link",
+        "options": "Company",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "email_notification_sent",
+        "label": "Initial Email Notification Sent",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "driver",
+        "label": "Driver",
+        "fieldtype": "Link",
+        "options": "Driver",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "driver_name",
+        "label": "Driver Name",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "driver_email",
+        "label": "Driver Email",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "driver_address",
+        "label": "Driver Address",
+        "fieldtype": "Link",
+        "options": "Address",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "total_distance",
+        "label": "Total Estimated Distance",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "2"
+      },
+      {
+        "fieldname": "uom",
+        "label": "Distance UOM",
+        "fieldtype": "Link",
+        "options": "UOM",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "vehicle",
+        "label": "Vehicle",
+        "fieldtype": "Link",
+        "options": "Vehicle",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "departure_time",
+        "label": "Departure Time",
+        "fieldtype": "Datetime",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "custom_expected_end_time",
+        "label": "Expected End Time",
+        "fieldtype": "Datetime",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_start_odometer",
+        "label": "Start Odometer (km)",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_end_odometer",
+        "label": "End Odometer (km)",
+        "fieldtype": "Int",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_planned_load_kg",
+        "label": "Planned Load (kg)",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "custom_origin_lat",
+        "label": "Origin Latitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "custom_origin_lng",
+        "label": "Origin Longitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "employee",
+        "label": "Employee",
+        "fieldtype": "Link",
+        "options": "Employee",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "delivery_stops",
+        "label": "Delivery Stop",
+        "fieldtype": "Table",
+        "options": "Delivery Stop",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "status",
+        "label": "Status",
+        "fieldtype": "Select",
+        "options": "Draft\nScheduled\nIn Transit\nCompleted\nCancelled",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "amended_from",
+        "label": "Amended From",
+        "fieldtype": "Link",
+        "options": "Delivery Trip",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "naming_series",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "company",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "email_notification_sent",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "driver",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "driver_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "driver_email",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "driver_address",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "total_distance",
+        "Type": "decimal(21,2)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.00",
+        "Extra": ""
+      },
+      {
+        "Field": "uom",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "vehicle",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "departure_time",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "employee",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "status",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "amended_from",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "custom_expected_end_time",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "custom_start_odometer",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_end_odometer",
+        "Type": "int(11)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_planned_load_kg",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_origin_lat",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_origin_lng",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      }
+    ]
+  },
+  "Delivery Stop": {
+    "fields": [
+      {
+        "fieldname": "customer",
+        "label": "Customer",
+        "fieldtype": "Link",
+        "options": "Customer",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "address",
+        "label": "Address Name",
+        "fieldtype": "Link",
+        "options": "Address",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "locked",
+        "label": "Locked",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_address",
+        "label": "Customer Address",
+        "fieldtype": "Small Text",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "visited",
+        "label": "Visited",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "delivery_note",
+        "label": "Delivery Note",
+        "fieldtype": "Link",
+        "options": "Delivery Note",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "grand_total",
+        "label": "Grand Total",
+        "fieldtype": "Currency",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "contact",
+        "label": "Contact Name",
+        "fieldtype": "Link",
+        "options": "Contact",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "email_sent_to",
+        "label": "Email sent to",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_contact",
+        "label": "Customer Contact",
+        "fieldtype": "Small Text",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "distance",
+        "label": "Distance",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "2"
+      },
+      {
+        "fieldname": "estimated_arrival",
+        "label": "Estimated Arrival",
+        "fieldtype": "Datetime",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "lat",
+        "label": "Latitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "uom",
+        "label": "UOM",
+        "fieldtype": "Link",
+        "options": "UOM",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "lng",
+        "label": "Longitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "details",
+        "label": "Details",
+        "fieldtype": "Text Editor",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "customer",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "address",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "locked",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "customer_address",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "visited",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "delivery_note",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "grand_total",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "contact",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "email_sent_to",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_contact",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "distance",
+        "Type": "decimal(21,2)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.00",
+        "Extra": ""
+      },
+      {
+        "Field": "estimated_arrival",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "lat",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "uom",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "lng",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "details",
+        "Type": "longtext",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parent",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parentfield",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parenttype",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  },
+  "Customer": {
+    "fields": [
+      {
+        "fieldname": "naming_series",
+        "label": "Series",
+        "fieldtype": "Select",
+        "options": "CUST-.YYYY.-",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "salutation",
+        "label": "Salutation",
+        "fieldtype": "Link",
+        "options": "Salutation",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_name",
+        "label": "Customer Name",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_type",
+        "label": "Customer Type",
+        "fieldtype": "Select",
+        "options": "Company\nIndividual\nPartnership",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_group",
+        "label": "Customer Group",
+        "fieldtype": "Link",
+        "options": "Customer Group",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "territory",
+        "label": "Territory",
+        "fieldtype": "Link",
+        "options": "Territory",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "gender",
+        "label": "Gender",
+        "fieldtype": "Link",
+        "options": "Gender",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "lead_name",
+        "label": "From Lead",
+        "fieldtype": "Link",
+        "options": "Lead",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "opportunity_name",
+        "label": "From Opportunity",
+        "fieldtype": "Link",
+        "options": "Opportunity",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "prospect_name",
+        "label": "From Prospect",
+        "fieldtype": "Link",
+        "options": "Prospect",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "account_manager",
+        "label": "Account Manager",
+        "fieldtype": "Link",
+        "options": "User",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "image",
+        "label": "Image",
+        "fieldtype": "Attach Image",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_currency",
+        "label": "Billing Currency",
+        "fieldtype": "Link",
+        "options": "Currency",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_bank_account",
+        "label": "Default Company Bank Account",
+        "fieldtype": "Link",
+        "options": "Bank Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_price_list",
+        "label": "Default Price List",
+        "fieldtype": "Link",
+        "options": "Price List",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "is_internal_customer",
+        "label": "Is Internal Customer",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "represents_company",
+        "label": "Represents Company",
+        "fieldtype": "Link",
+        "options": "Company",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "companies",
+        "label": "Allowed To Transact With",
+        "fieldtype": "Table",
+        "options": "Allowed To Transact With",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "market_segment",
+        "label": "Market Segment",
+        "fieldtype": "Link",
+        "options": "Market Segment",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "industry",
+        "label": "Industry",
+        "fieldtype": "Link",
+        "options": "Industry Type",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_pos_id",
+        "label": "Customer POS id",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "website",
+        "label": "Website",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "language",
+        "label": "Print Language",
+        "fieldtype": "Link",
+        "options": "Language",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_details",
+        "label": "Customer Details",
+        "fieldtype": "Text",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_primary_address",
+        "label": "Customer Primary Address",
+        "fieldtype": "Link",
+        "options": "Address",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "primary_address",
+        "label": "Primary Address",
+        "fieldtype": "Text",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "customer_primary_contact",
+        "label": "Customer Primary Contact",
+        "fieldtype": "Link",
+        "options": "Contact",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "mobile_no",
+        "label": "Mobile No",
+        "fieldtype": "Read Only",
+        "options": "Mobile",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "email_id",
+        "label": "Email Id",
+        "fieldtype": "Read Only",
+        "options": "Email",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "first_name",
+        "label": "First Name",
+        "fieldtype": "Read Only",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "last_name",
+        "label": "Last Name",
+        "fieldtype": "Read Only",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "tax_id",
+        "label": "Tax ID",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "tax_category",
+        "label": "Tax Category",
+        "fieldtype": "Link",
+        "options": "Tax Category",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "tax_withholding_category",
+        "label": "Tax Withholding Category",
+        "fieldtype": "Link",
+        "options": "Tax Withholding Category",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "payment_terms",
+        "label": "Default Payment Terms Template",
+        "fieldtype": "Link",
+        "options": "Payment Terms Template",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "credit_limits",
+        "label": "Credit Limit",
+        "fieldtype": "Table",
+        "options": "Customer Credit Limit",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "accounts",
+        "label": "Accounts",
+        "fieldtype": "Table",
+        "options": "Party Account",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "loyalty_program",
+        "label": "Loyalty Program",
+        "fieldtype": "Link",
+        "options": "Loyalty Program",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "loyalty_program_tier",
+        "label": "Loyalty Program Tier",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "sales_team",
+        "label": "Sales Team",
+        "fieldtype": "Table",
+        "options": "Sales Team",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_sales_partner",
+        "label": "Sales Partner",
+        "fieldtype": "Link",
+        "options": "Sales Partner",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "default_commission_rate",
+        "label": "Commission Rate",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "so_required",
+        "label": "Allow Sales Invoice Creation Without Sales Order",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "dn_required",
+        "label": "Allow Sales Invoice Creation Without Delivery Note",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "is_frozen",
+        "label": "Is Frozen",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "disabled",
+        "label": "Disabled",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "portal_users",
+        "label": "Customer Portal Users",
+        "fieldtype": "Table",
+        "options": "Portal User",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "naming_series",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "salutation",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_type",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "Company",
+        "Extra": ""
+      },
+      {
+        "Field": "customer_group",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "territory",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "gender",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "lead_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "opportunity_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "prospect_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "account_manager",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "image",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_currency",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_bank_account",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_price_list",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "is_internal_customer",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "represents_company",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "UNI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "market_segment",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "industry",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_pos_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "website",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "language",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_details",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_primary_address",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "primary_address",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "customer_primary_contact",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "mobile_no",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "email_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "first_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "last_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "tax_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "tax_category",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "tax_withholding_category",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "payment_terms",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "loyalty_program",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "loyalty_program_tier",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_sales_partner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "default_commission_rate",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "so_required",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "dn_required",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "is_frozen",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "disabled",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  },
+  "Address": {
+    "fields": [
+      {
+        "fieldname": "address_title",
+        "label": "Address Title",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "address_type",
+        "label": "Address Type",
+        "fieldtype": "Select",
+        "options": "Billing\nShipping\nOffice\nPersonal\nPlant\nPostal\nShop\nSubsidiary\nWarehouse\nCurrent\nPermanent\nOther",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "address_line1",
+        "label": "Address Line 1",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "address_line2",
+        "label": "Address Line 2",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "city",
+        "label": "City/Town",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "county",
+        "label": "County",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "state",
+        "label": "State/Province",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "country",
+        "label": "Country",
+        "fieldtype": "Link",
+        "options": "Country",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "pincode",
+        "label": "Postal Code",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "custom_latitude",
+        "label": "Latitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "custom_longitude",
+        "label": "Longitude",
+        "fieldtype": "Float",
+        "options": null,
+        "reqd": 0,
+        "precision": "9"
+      },
+      {
+        "fieldname": "custom_geocode_source",
+        "label": "Geocode Source",
+        "fieldtype": "Select",
+        "options": "Manual\nGoogle Maps\nOpenStreetMap\nGPS Device",
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "email_id",
+        "label": "Email Address",
+        "fieldtype": "Data",
+        "options": "Email",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "phone",
+        "label": "Phone",
+        "fieldtype": "Data",
+        "options": "Phone",
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "fax",
+        "label": "Fax",
+        "fieldtype": "Data",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "tax_category",
+        "label": "Tax Category",
+        "fieldtype": "Link",
+        "options": "Tax Category",
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "is_primary_address",
+        "label": "Preferred Billing Address",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "is_shipping_address",
+        "label": "Preferred Shipping Address",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "disabled",
+        "label": "Disabled",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      },
+      {
+        "fieldname": "is_your_company_address",
+        "label": "Is Your Company Address",
+        "fieldtype": "Check",
+        "options": null,
+        "reqd": 0,
+        "precision": ""
+      },
+      {
+        "fieldname": "links",
+        "label": "Links",
+        "fieldtype": "Table",
+        "options": "Dynamic Link",
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "address_title",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "address_type",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "address_line1",
+        "Type": "varchar(240)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "address_line2",
+        "Type": "varchar(240)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "city",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "county",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "state",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "country",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "pincode",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "email_id",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "phone",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "fax",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "is_primary_address",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "is_shipping_address",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "disabled",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "_user_tags",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_comments",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_assign",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "_liked_by",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "tax_category",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "is_your_company_address",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_latitude",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_longitude",
+        "Type": "decimal(21,9)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0.000000000",
+        "Extra": ""
+      },
+      {
+        "Field": "custom_geocode_source",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "Manual",
+        "Extra": ""
+      }
+    ]
+  },
+  "Dynamic Link": {
+    "fields": [
+      {
+        "fieldname": "link_doctype",
+        "label": "Link Document Type",
+        "fieldtype": "Link",
+        "options": "DocType",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "link_name",
+        "label": "Link Name",
+        "fieldtype": "Dynamic Link",
+        "options": "link_doctype",
+        "reqd": 1,
+        "precision": null
+      },
+      {
+        "fieldname": "link_title",
+        "label": "Link Title",
+        "fieldtype": "Read Only",
+        "options": null,
+        "reqd": 0,
+        "precision": null
+      }
+    ],
+    "columns": [
+      {
+        "Field": "name",
+        "Type": "varchar(140)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "creation",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified",
+        "Type": "datetime(6)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "modified_by",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "owner",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "docstatus",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "idx",
+        "Type": "int(8)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+      },
+      {
+        "Field": "link_doctype",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "link_name",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "link_title",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parent",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parentfield",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      },
+      {
+        "Field": "parenttype",
+        "Type": "varchar(140)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+      }
+    ]
+  }
+}
