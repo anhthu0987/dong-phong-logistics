@@ -1,9 +1,10 @@
-import json
 import frappe
-from frappe.utils.modules import get_module_placement
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def install():
+    # Empty extension modules have no DocType import to create their Module Def.
+    from frappe.installer import add_module_defs
+    add_module_defs('dp_dispatch', ignore_if_duplicate=True)
     create_custom_fields({
         'Vehicle':[
             dict(fieldname='custom_payload_capacity_kg',label='Tải trọng (kg)',fieldtype='Float',non_negative=1,insert_after='model',description='Tải trọng tối đa của xe; phải lớn hơn khối lượng hàng của chuyến.'),
@@ -110,118 +111,10 @@ def install_client_script(name, doctype, filename):
 
 
 def install_dispatch_workspace():
-    """Create a stable, grouped entry point for the four demo business areas."""
-    groups = [
-        ("Khách hàng và báo giá", [
-            ("Khách hàng", "Customer"),
-            ("Báo giá", "Quotation"),
-            ("Dịch vụ vận chuyển", "Item"),
-            ("Bảng giá dịch vụ", "Item Price"),
-        ]),
-        ("Đơn vận chuyển", [
-            ("Đơn vận chuyển", "Delivery Order"),
-        ]),
-        ("Xe, tài xế và vận hành", [
-            ("Xe", "Vehicle"),
-            ("Tài xế", "Driver"),
-            ("Nhân viên", "Employee"),
-            ("Nhật ký xe", "Vehicle Log"),
-            ("Hạng mục bảo dưỡng xe", "Vehicle Service Item"),
-            ("Kế hoạch bảo dưỡng", "Fleet Maintenance Plan"),
-            ("Ghi nhận bảo dưỡng", "Fleet Maintenance Record"),
-        ]),
-        ("Điều phối và quản lý chuyến", [
-            ("Chuyến vận chuyển", "Delivery Trip"),
-            ("Xác nhận giao hàng", "Delivery Confirmation"),
-        ]),
-    ]
-    workspace = frappe.get_doc("Workspace", "DP Dispatch") if frappe.db.exists("Workspace", "DP Dispatch") else frappe.new_doc("Workspace")
-    workspace.label = "DP Dispatch"
-    workspace.title = "DP Dispatch"
-    workspace.module = "DP Dispatch"
-    workspace.type = "Workspace"
-    workspace.icon = "truck"
-    workspace.public = 1
-    workspace.is_hidden = 0
-    workspace.standard = 0
-    workspace.sequence_id = 50
-    workspace.content = json.dumps([
-        {"id": "dp_dispatch_sales", "type": "card", "data": {"card_name": "Khách hàng và báo giá", "col": 3}},
-        {"id": "dp_dispatch_orders", "type": "card", "data": {"card_name": "Đơn vận chuyển", "col": 3}},
-        {"id": "dp_dispatch_fleet", "type": "card", "data": {"card_name": "Xe, tài xế và vận hành", "col": 3}},
-        {"id": "dp_dispatch_trips", "type": "card", "data": {"card_name": "Điều phối và quản lý chuyến", "col": 3}},
-    ], ensure_ascii=False)
-    workspace.links = []
-    for group, doctypes in groups:
-        workspace.append("links", {"type": "Card Break", "label": group})
-        for label, doctype in doctypes:
-            if frappe.db.exists("DocType", doctype):
-                workspace.append("links", {
-                    "type": "Link",
-                    "label": label,
-                    "link_type": "DocType",
-                    "link_to": doctype,
-                })
-    workspace.save(ignore_permissions=True)
+    from dp_dispatch.module_navigation import install_workspaces
+    install_workspaces()
 
 
 def install_dispatch_sidebar():
-    """Expose the same four business areas in the DP Dispatch left navigation."""
-    groups = [
-        ("Khách hàng và báo giá", [
-            ("Khách hàng", "Customer", "user-round"),
-            ("Báo giá", "Quotation", "file-text"),
-            ("Dịch vụ vận chuyển", "Item", "package"),
-            ("Bảng giá dịch vụ", "Item Price", "tag"),
-        ]),
-        ("Đơn vận chuyển", [
-            ("Đơn vận chuyển", "Delivery Order", "truck"),
-        ]),
-        ("Xe, tài xế và vận hành", [
-            ("Xe", "Vehicle", "truck"),
-            ("Tài xế", "Driver", "user-round"),
-            ("Nhân viên", "Employee", "users-round"),
-            ("Nhật ký xe", "Vehicle Log", "clipboard-list"),
-            ("Hạng mục bảo dưỡng xe", "Vehicle Service Item", "wrench"),
-            ("Kế hoạch bảo dưỡng", "Fleet Maintenance Plan", "calendar-check"),
-            ("Ghi nhận bảo dưỡng", "Fleet Maintenance Record", "clipboard-check"),
-        ]),
-        ("Điều phối và quản lý chuyến", [
-            ("Chuyến vận chuyển", "Delivery Trip", "route"),
-            ("Xác nhận giao hàng", "Delivery Confirmation", "circle-check"),
-        ]),
-    ]
-
-    sidebar = frappe.get_doc("Sidebar", "DP Dispatch") if frappe.db.exists("Sidebar", "DP Dispatch") else frappe.new_doc("Sidebar")
-    sidebar.title = "DP Dispatch"
-    sidebar.module = "DP Dispatch"
-    sidebar.app = get_module_placement("DP Dispatch")
-    sidebar.header_icon = "truck"
-    sidebar.standard = 0
-    sidebar.items = []
-    sidebar.append("items", {
-        "type": "Link",
-        "label": "Trang chủ",
-        "link_type": "Workspace",
-        "link_to": "DP Dispatch",
-        "icon": "house",
-    })
-    for group, doctypes in groups:
-        sidebar.append("items", {
-            "type": "Section Break",
-            "label": group,
-            "indent": 1,
-            "collapsible": 1,
-            "keep_closed": 0,
-        })
-        for label, doctype, icon in doctypes:
-            if frappe.db.exists("DocType", doctype):
-                sidebar.append("items", {
-                    "type": "Link",
-                    "label": label,
-                    "link_type": "DocType",
-                    "link_to": doctype,
-                    "icon": icon,
-                    "child": 1,
-                })
-    sidebar.save(ignore_permissions=True)
+    from dp_dispatch.module_navigation import install_sidebar
+    install_sidebar()

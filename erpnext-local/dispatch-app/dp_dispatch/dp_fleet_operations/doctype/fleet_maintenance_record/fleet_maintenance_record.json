@@ -1,7 +1,7 @@
 {
   "doctype": "DocType",
   "name": "Fleet Maintenance Record",
-  "module": "DP Dispatch",
+  "module": "DP Fleet Operations",
   "autoname": "naming_series:",
   "naming_rule": "By Naming Series field",
   "naming_series": "DP-MR-.YYYY.-",

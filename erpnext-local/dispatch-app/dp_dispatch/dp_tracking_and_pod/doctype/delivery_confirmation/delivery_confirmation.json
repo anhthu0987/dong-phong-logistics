@@ -1,7 +1,7 @@
 {
   "doctype": "DocType",
   "name": "Delivery Confirmation",
-  "module": "DP Dispatch",
+  "module": "DP Tracking and POD",
   "autoname": "naming_series:",
   "naming_rule": "By Naming Series field",
   "naming_series": "DP-DC-.YYYY.-",

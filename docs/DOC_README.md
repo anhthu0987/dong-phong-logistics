@@ -8,6 +8,11 @@ Trạng thái mô tả ở đây là code hiện có trong repository; cấu hì
 
 ## 2. Cấu trúc thư mục
 
+Module đã tách theo [bảng mapping](MODULE_MAPPING.md). Sáu DocType tự xây nằm
+trong `dp_transport_orders/doctype`, `dp_fleet_operations/doctype` và
+`dp_tracking_and_pod/doctype`. `dp_transport_planning` là module điều phối mở rộng
+Delivery Trip chuẩn. `dp_dispatch` giữ vai trò đầu mối tương thích.
+
 ```text
 dong-phong-logistics/
 ├── README.md                         # Mục lục tài liệu
@@ -23,7 +28,11 @@ dong-phong-logistics/
     ├── database/                     # Bộ cài schema/dữ liệu mẫu v15 cũ
     └── dispatch-app/
         ├── dp_dispatch/
-        │   ├── dp_dispatch/doctype/  # DocType tùy chỉnh dạng metadata JSON
+        │   ├── dp_transport_orders/doctype/ # Đơn vận chuyển
+        │   ├── dp_fleet_operations/doctype/ # Bảo trì
+        │   ├── dp_tracking_and_pod/doctype/ # Giao nhận, ePOD
+        │   ├── dp_transport_planning/ # Điều phối, kế hoạch
+        │   ├── module_navigation.py # Sáu Workspace nghiệp vụ
         │   ├── public/js/            # Client Scripts (Desk)
         │   ├── setup.py              # Custom Fields, quyền, workspace, scripts
         │   ├── hooks.py              # Frappe hooks và document events
@@ -42,7 +51,7 @@ dong-phong-logistics/
 
 Schema runtime do Frappe quản lý, không tự tạo bảng bằng câu lệnh SQL:
 
-- **DocType tùy chỉnh:** mỗi thư mục trong `dp_dispatch/dp_dispatch/doctype/<doctype>/` chứa JSON metadata, controller Python và `__init__.py`. Migration đồng bộ metadata vào database.
+- **DocType tùy chỉnh:** mỗi thư mục trong `dp_dispatch/<module>/doctype/<doctype>/` chứa JSON metadata, controller Python và `__init__.py`. Migration đồng bộ metadata vào database và chuyển module mà không đổi tên chứng từ.
 - **Custom Fields trên DocType chuẩn:** khai báo trong `dp_dispatch/setup.py` qua `create_custom_fields`; hook `after_migrate` và `after_install` chạy hàm `dp_dispatch.setup.install`.
 - **Quyền và giao diện Desk:** setup đồng bộ Role Permissions, Client Script, Workspace và Sidebar; không cần sửa source ERPNext.
 - `database/install_schema.py` và `schema-reference.sql` thuộc quy trình dữ liệu v15 cũ. SQL dump chỉ để đọc/đối chiếu, không chạy để cài schema.
