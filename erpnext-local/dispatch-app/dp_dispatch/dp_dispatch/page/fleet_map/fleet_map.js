@@ -271,7 +271,7 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
   }
 
   loadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-  loadJs('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', function() {
+  loadJs('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', async function() {
     const map = L.map('dp-map', {
       zoomControl: false,
       minZoom: 2,
@@ -291,447 +291,114 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
 
     setTimeout(function() { map.invalidateSize(); }, 300);
 
-    const trackLayer = L.layerGroup().addTo(map);
+
     const routeLayer = L.layerGroup().addTo(map);
     const historyLayer = L.layerGroup().addTo(map);
-    
-    const markers = {};
-    const stopMarkersList = [];
-    let vehiclesData = [];
-    
-    let selectedPlate = null;
-    let currentNavIndex = -1;
-
-    function ageMin(t) {
-      if (!t) return Infinity;
-      const now = moment(frappe.datetime.now_datetime().toString().slice(0, 19)); 
-      return now.diff(moment(String(t).slice(0, 19)), 'minutes');
-    }
-
-    function formatTimeAgo(time) {
-      const m = ageMin(time);
-      if (!isFinite(m)) return 'Mất tín hiệu';
-      if (m < 60) {
-        return `${m} phút trước`;
-      }
-      const hrs = Math.floor(m / 60);
-      const mins = m % 60;
-      return `${hrs} giờ ${mins} phút trước`;
-    }
-
-    function getStatusColor(status, time) {
-      const st = String(status || '').toLowerCase();
-      if (st.includes('bảo dưỡng') || st.includes('sửa chữa') || st.includes('maintenance')) return '#ea580c';
-      if (st.includes('hỏng') || st.includes('sự cố') || st.includes('out of service') || st.includes('breakdown')) return '#dc2626';
-      const m = ageMin(time);
-      return m < 5 ? '#16a34a' : '#000000';
-    }
-
-    function canDrawRoute(v) {
-      const st = String(v.status || '').toLowerCase();
-      const isAvailable = !st || st.includes('khả dụng') || st.includes('available');
-      const isOnline = ageMin(v.time) < 5;
-      return isAvailable || isOnline;
-    }
-
-    function createTruckIcon(color) {
-      return L.divIcon({
-        className: 'custom-dp-truck-icon',
-        html: `<div class="dp-truck-marker" style="background-color: ${color};"><i class="fa fa-truck" style="color: #ffffff;"></i></div>`,
-        iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18]
+    const positionLayer = L.layerGroup().addTo(map);
+    const controls = $('<div class="form-group" style="padding:12px"><label>Chuyến vận chuyển</label><select class="form-control dp-map-trip"></select><div class="dp-map-status text-muted" style="margin-top:8px"></div></div>').prependTo(page.main);
+    const selector = controls.find('select');
+    let selected = null, generation = 0, polling = false, positionMarker = null;
+    let stopMarkers = [], nav = -1, trips = [];
+    function coord(p) { return p && p.lat != null && p.lng != null; }
+    function status(text) { controls.find('.dp-map-status').text(text); }
+    function renderTrips(keyword = '') {
+      const list = $(page.main).find('#vehicle-list-container').empty();
+      trips.filter(t => `${t.name} ${t.vehicle}`.toLowerCase().includes(keyword.toLowerCase())).forEach(t => {
+        $('<button class="btn btn-default" style="display:block;width:100%;margin:4px 0;text-align:left">')
+          .text(`${t.vehicle || 'Chưa gán xe'} · ${t.name} · ${t.status}`)
+          .on('click', () => choose(t.name)).appendTo(list);
       });
     }
-
-    function createStopIcon(seq) {
-      return L.divIcon({
-        className: 'custom-dp-stop-icon',
-        html: `<div class="dp-stop-marker" style="color: #ffffff;">${seq}</div>`,
-        iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14]
+    async function draw(fit = false) {
+      if (!selected) return;
+      const tripName = selected, token = generation;
+      const {message:data} = await frappe.call({method:'dp_dispatch.tracking.get_trip_tracking',args:{delivery_trip:tripName}});
+      if (token !== generation || selected !== tripName) return;
+      routeLayer.clearLayers(); positionLayer.clearLayers(); stopMarkers=[]; positionMarker=null;
+      const points = [], missing = [];
+      const path = [];
+      if (data.trip.custom_origin_lat || data.trip.custom_origin_lng) path.push([data.trip.custom_origin_lat,data.trip.custom_origin_lng]);
+      data.stops.forEach(s => {
+        if (!coord(s)) {missing.push(s.idx); return;}
+        const pt = [s.lat,s.lng]; points.push(pt); path.push(pt);
+        const kind = {Pickup:'Lấy hàng',Delivery:'Giao hàng',Return:'Trả người gửi'}[s.operation] || s.operation;
+        const marker = L.marker(pt).addTo(routeLayer).bindPopup(`<b>#${s.idx} ${esc(kind)}</b><br>${esc(s.customer || '')}<br>${esc(s.address || '')}<br>${esc(s.status || '')}`);
+        stopMarkers.push(marker);
       });
-    }
-
-    function getTruckPopupHtml(v) {
-      const timeAgoText = formatTimeAgo(v.time);
-      const color = getStatusColor(v.status, v.time);
-      
-      const simBadgeHtml = (v.source_type === 'Simulated') 
-        ? `<span class="dp-badge-simulated" style="margin-left: 4px;">Mô phỏng</span>` 
-        : '';
-
-      return `
-        <div style="padding: 6px 8px; min-width: 220px;">
-          <div style="border-bottom: 1px solid #333333; padding-bottom: 8px; margin-bottom: 8px;">
-            <div style="color: #ffffff; font-size: 15px; font-weight: 700; margin-bottom: 6px;">
-              <i class="fa fa-truck" style="color: #ffffff; margin-right: 6px;"></i>${esc(v.plate)}
-            </div>
-            <div>
-              <span style="background: ${color}; color: #ffffff; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; display: inline-block;"> 
-                ${esc(v.status || 'Khả dụng')}
-              </span>
-              ${simBadgeHtml}
-            </div>
-          </div>
-          <div style="font-size: 12px; color: #d4d4d8; line-height: 1.6;">
-            <div>Tín hiệu: <b>${timeAgoText}</b></div>
-            <div>Thiết bị: ${esc(v.device || 'N/A')}</div>
-            <div>Tọa độ: ${v.lat ? v.lat.toFixed(5) : '0'}, ${v.lng ? v.lng.toFixed(5) : '0'}</div>
-          </div>
-        </div>`;
-    }
-
-    function selectVehicle(plate, preserveView) {
-      const v = vehiclesData.find(item => item.plate === plate);
-      if (!v) return;
-
-      if (!preserveView) {
-        map.closePopup();
+      // This is a schematic in approved stop order, never a road-routing/optimization result.
+      if (path.length > 1 && !missing.length) L.polyline(path,{color:'#18181b',dashArray:'6 6',weight:3}).addTo(routeLayer);
+      const p = data.position;
+      let positionText = 'Chưa có GPS cho chuyến này';
+      if (p) {
+        const age = moment(frappe.datetime.now_datetime()).diff(moment(String(p.recorded_at)), 'minutes');
+        const stale = age >= 5 || data.trip.status !== 'In Transit';
+        positionText = `GPS cuối: ${p.recorded_at}${stale ? ' — dữ liệu cũ / chuyến không chạy' : ''}`;
+        const pt=[p.latitude,p.longitude]; points.push(pt);
+        positionMarker=L.circleMarker(pt,{radius:9,color:stale?'#6b7280':'#16a34a',fillOpacity:0.9}).addTo(positionLayer)
+          .bindPopup(`${esc(data.trip.vehicle || '')}<br>${esc(positionText)}<br>${esc(p.source_type || '')}`);
       }
-      routeLayer.clearLayers();
-      trackLayer.clearLayers();
+      status(`${data.trip.name} · ${data.trip.status} · ${positionText}. Nét đứt: sơ đồ thứ tự điểm, chưa phải đường chạy thực tế.${missing.length ? ' Thiếu tọa độ điểm: '+missing.join(', ')+'.' : ''}`);
+      $('#selected-vehicle-name',page.main).text(`${data.trip.vehicle} · ${tripName}`);
+      $('#selected-vehicle-tag,#vehicle-actions-group',page.main).show();
+      $('#stat-online',page.main).text(data.trip.status === 'In Transit' ? 'Đang thực hiện' : data.trip.status);
+      if (fit && points.length) map.fitBounds(L.latLngBounds(points),{padding:[40,40],maxZoom:14});
+    }
+    async function choose(name) {
+      generation++;
+      selected=name; nav=-1; selector.val(name);
+      historyLayer.clearLayers(); routeLayer.clearLayers(); positionLayer.clearLayers();
+      stopMarkers=[]; positionMarker=null;
+      await draw(true);
+    }
+    async function refresh() {
+      const {message:rows} = await frappe.call({method:'dp_dispatch.tracking.list_trips'});
+      trips=rows || [];
+      selector.empty();
+      trips.forEach(t => $('<option>').val(t.name).text(`${t.name} · ${t.vehicle || ''} · ${t.status}`).appendTo(selector));
+      renderTrips($('#vehicle-search',page.main).val() || '');
+      $('#stat-total',page.main).text(`${trips.length} chuyến`);
+      const requested=frappe.route_options?.delivery_trip;
+      if (requested) frappe.route_options=null;
+      const target=requested || selected || trips.find(t => t.status==='In Transit')?.name || trips[0]?.name;
+      if (target) {
+        // Explicit links are permission-checked by the backend even beyond the list's page limit.
+        if (!trips.some(t => t.name===target)) $('<option>').val(target).text(target).appendTo(selector);
+        await choose(target);
+      } else { status('Chưa có chuyến đã Submit trong phạm vi được xem.'); }
+    }
+    selector.on('change',function(){choose(this.value);});
+    $('#vehicle-search',page.main).attr('placeholder','Tìm xe hoặc chuyến...').on('input',function(){renderTrips(this.value);});
+    $('#btn-view-history',page.main).on('click',async function(){
+      if (!selected) return;
+      const trip=selected, token=generation;
+      const {message:rows}=await frappe.call({method:'dp_dispatch.dp_dispatch.api.gps.get_gps_history',args:{delivery_trip:trip,limit:3000}});
+      if (token!==generation || trip!==selected) return;
       historyLayer.clearLayers();
-      stopMarkersList.length = 0;
-
-      selectedPlate = plate;
-      currentNavIndex = -1;
-
-      $('.dp-vehicle-item').removeClass('active');$(`.dp-vehicle-item[data-plate="${plate}"]`).addClass('active');
-
-      const statusColor = getStatusColor(v.status, v.time);
-      $('#selected-vehicle-name').text(plate);
-      $('#selected-vehicle-tag').css({
-        'background-color': statusColor,
-        'border-color': statusColor
-      }).show();
-
-      $('#vehicle-actions-group').css('display', 'inline-flex');
-
-      if (canDrawRoute(v)) {
-        drawRouteFromTruck(plate, v.lat, v.lng);
-      } else {
-        if (markers[plate] && !preserveView) {
-          map.setView([v.lat, v.lng], 15);
-          markers[plate].openPopup();
-        }
-      }
-    }
-
-    function loadGpsHistory(plate) {
-      historyLayer.clearLayers();
-      frappe.call({
-        method: 'dp_dispatch.dp_dispatch.api.gps.get_gps_history',
-        args: { vehicle: plate, limit: 200 },
-        callback: function(r) {
-          if (!r.message || !r.message.length) {
-            return frappe.show_alert({ message: __('Không có dữ liệu lịch sử GPS Log'), indicator: 'orange' });
-          }
-          const pts = r.message.map(p => [p.latitude, p.longitude]);
-          const polyline = L.polyline(pts, { color: '#2563eb', weight: 4, opacity: 0.8 }).addTo(historyLayer);
-          
-          pts.forEach((pt, i) => {
-            L.circleMarker(pt, { radius: 4, color: '#1d4ed8', fillColor: '#ffffff', fillOpacity: 1 }).addTo(historyLayer)
-              .bindPopup(`<b style="color:#ffffff;"><i class="fa fa-map-marker" style="color:#ffffff; margin-right:4px;"></i>Điểm GPS #${i+1}</b><br>Thời gian: ${r.message[i].recorded_at}<br>Nguồn: ${r.message[i].source_type}`);
-          });
-
-          map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-          frappe.show_alert({ message: __('Đã tải {0} điểm lịch sử GPS Log', [r.message.length]), indicator: 'green' });
-        }
-      });
-    }
-
-    function renderVehicleList(filterKeyword) {
-      const container = $('#vehicle-list-container');
-      container.empty();
-
-      // ÉP SẮP XẾP TẤT CẢ XE THEO MÃ BIỂN SỐ/ID (A-Z, 0-9)
-      const sortedData = vehiclesData.slice().sort((a, b) => a.plate.localeCompare(b.plate, undefined, { numeric: true, sensitivity: 'base' }));
-
-      const filtered = sortedData.filter(v => {
-        if (!filterKeyword) return true;
-        return v.plate.toLowerCase().includes(filterKeyword.toLowerCase());
-      });
-
-      if (!filtered.length) {
-        container.html('<div style="text-align: center; color: #9ca3af; font-size: 11px; padding: 15px;">Không thấy xe</div>');
-        return;
-      }
-
-      filtered.forEach(v => {
-        const color = getStatusColor(v.status, v.time);
-        const timeAgoText = formatTimeAgo(v.time);
-        const isActive = v.plate === selectedPlate ? 'active' : '';
-
-        const itemHtml = `
-          <div class="dp-vehicle-item ${isActive}" data-plate="${esc(v.plate)}">
-            <div>
-              <div style="font-weight: 700; font-size: 12px;">🚛 ${esc(v.plate)}</div>
-              <div class="dp-vehicle-subtext" style="font-size: 10px; color: #6b7280; margin-top: 1px;">
-                ${timeAgoText}
-              </div>
-            </div>
-            <span style="background: ${color}; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
-          </div>
-        `;
-        container.append(itemHtml);
-      });
-    }
-
-    function upsertVehicle(v) {
-      if (!v.lat || !v.lng) return;
-      let m = markers[v.plate];
-      const color = getStatusColor(v.status, v.time);
-
-      if (!m) {
-        m = L.marker([v.lat, v.lng], { icon: createTruckIcon(color) }).addTo(map);
-        m.bindPopup(function() { return getTruckPopupHtml(m._dp); });
-
-        m.on('click', function() {
-          selectVehicle(v.plate);
-        });
-
-        markers[v.plate] = m;
-      } else {
-        m.setLatLng([v.lat, v.lng]);
-        m.setIcon(createTruckIcon(color));
-      }
-      m._dp = Object.assign(m._dp || {}, v);
-    }
-
-    const LIVE_METHOD = 'dp_dispatch.dp_dispatch.api.gps_redis.get_live_positions';
-    const POLL_MS = 3000;
-
-    function applyLive(rows) {
-      let online = 0;
-      vehiclesData = [];
-      rows.forEach(function(row) {
-        if (!row.lat || !row.lng) return;
-        vehiclesData.push(row);
-        upsertVehicle(row);
-        if (ageMin(row.time) < 5) online++;
-      });
-      $('#stat-total').text(rows.length + ' xe');
-      $('#stat-online').text(online + ' Trực tuyến');
-      renderVehicleList($('#vehicle-search').val());
-    }
-
-    function loadVehicles(isRefresh) {
-      return frappe.call({
-        method: LIVE_METHOD,
-        callback: function(r) {
-          if (!r.message) return;
-          applyLive(r.message);
-
-          const pts = Object.values(markers).map(m => m.getLatLng());
-          if (pts.length && !loadVehicles.fitted) {
-            map.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 13 });
-            loadVehicles.fitted = true;
-          }
-          if (isRefresh && selectedPlate) {
-            selectVehicle(selectedPlate, true);
-          }
-        }
-      });
-    }
-
-    // ---- 3s live poll (runs only while this page is visible/focused) ----
-    const VERSION = 'redis-3s v3';
-    console.log('[fleet-map] loaded', VERSION);
-
-    let polling = false;
-    function pollOnce() {
-      if (polling) return;                       // don't overlap slow requests
-      if (document.hidden || !$(wrapper).is(':visible')) return;
-      polling = true;
-      frappe.call({
-        method: LIVE_METHOD,
-        freeze: false,
-        callback: function(r) {
-          if (r.message) {
-            applyLive(r.message);
-            const t = new Date().toLocaleTimeString();
-            console.log('[fleet-map] poll ok', t);
-          }
-        },
-        always: function() { polling = false; }
-      });
-    }
-
-    const pollTimer = setInterval(pollOnce, POLL_MS);
-    // poll immediately when the tab/page regains focus
-    document.addEventListener('visibilitychange', pollOnce);
-    $(window).on('focus', pollOnce);
-    $(document).on('page-change', function() {
-      if (!document.body.contains(wrapper)) clearInterval(pollTimer);
+      if (!rows?.length) return frappe.msgprint('Chuyến này chưa có lịch sử GPS.');
+      const pts=rows.map(p=>[p.latitude,p.longitude]);
+      L.polyline(pts,{color:'#2563eb',weight:4}).addTo(historyLayer);
+      rows.forEach(p=>L.circleMarker([p.latitude,p.longitude],{radius:3}).addTo(historyLayer).bindPopup(esc(String(p.recorded_at))));
+      map.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:16});
     });
-
-    function calcDist(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    $('#btn-zoom-truck',page.main).on('click',()=>{if(positionMarker){map.setView(positionMarker.getLatLng(),16);positionMarker.openPopup();}});
+    function navigate(delta) {
+      if (!stopMarkers.length) return;
+      nav=Math.max(0,Math.min(stopMarkers.length-1,nav+delta));
+      map.setView(stopMarkers[nav].getLatLng(),16); stopMarkers[nav].openPopup();
     }
-
-    function optimizeRoute(startLat, startLng, stops) {
-      let unvisited = stops.slice();
-      let currentLat = startLat;
-      let currentLng = startLng;
-      let orderedRoute = [];
-
-      while (unvisited.length > 0) {
-        let nearestIdx = 0;
-        let minD = Infinity;
-
-        for (let i = 0; i < unvisited.length; i++) {
-          let d = calcDist(currentLat, currentLng, unvisited[i].lat, unvisited[i].lng);
-          if (d < minD) {
-            minD = d;
-            nearestIdx = i;
-          }
-        }
-
-        let nextStop = unvisited.splice(nearestIdx, 1)[0];
-        currentLat = nextStop.lat;
-        currentLng = nextStop.lng;
-        orderedRoute.push(nextStop);
-      }
-      return orderedRoute;
-    }
-
-    function drawRouteFromTruck(plate, truckLat, truckLng) {
-      routeLayer.clearLayers();
-      stopMarkersList.length = 0;
-
-      frappe.db.get_list('Delivery Trip', {
-        filters: { vehicle: plate, docstatus: ['<', 2] },
-        fields: ['name', 'driver_name', 'departure_time'],
-        order_by: 'creation desc',
-        limit: 1
-      }).then(function(trips) {
-        if (!trips || !trips.length) {
-          if (markers[plate]) {
-            map.setView([truckLat, truckLng], 15);
-          }
-          return frappe.show_alert({ message: __('Xe {0} chưa có chuyến giao hàng active', [plate]), indicator: 'orange' });
-        }
-
-        const trip = trips[0];
-        frappe.db.get_list('Delivery Stop', {
-          parent_doctype: 'Delivery Trip',
-          filters: { parent: trip.name },
-          fields: ['idx', 'customer', 'lat', 'lng', 'address'],
-          limit: 100
-        }).then(function(stops) {
-          const validStops = stops.filter(s => s.lat && s.lng);
-          if (!validStops.length) {
-            if (markers[plate]) {
-              map.setView([truckLat, truckLng], 15);
-            }
-            return frappe.show_alert({ message: __('Chuyến {0} chưa có tọa độ điểm giao hàng', [trip.name]), indicator: 'orange' });
-          }
-
-          const sortedStops = optimizeRoute(truckLat, truckLng, validStops);
-          const path = [[truckLat, truckLng]].concat(sortedStops.map(s => [s.lat, s.lng]));
-          const polyline = L.polyline(path, { color: '#18181b', weight: 4, dashArray: '6, 6', opacity: 0.85 }).addTo(routeLayer);
-
-          sortedStops.forEach(function(s, seq) {
-            const seqNum = seq + 1;
-            const sm = L.marker([s.lat, s.lng], { icon: createStopIcon(seqNum) }).addTo(routeLayer)
-              .bindPopup(`
-                <div style="padding: 4px; min-width: 180px;">
-                  <b style="color: #ffffff; font-size: 13px;">
-                    <i class="fa fa-map-marker" style="color: #ffffff; margin-right: 6px;"></i>Điểm ghé #${seqNum}
-                  </b>
-                  <div style="font-size: 11px; color: #d4d4d8; margin-top: 4px;"> 
-                    <div>Khách hàng: <b>${esc(s.customer || 'N/A')}</b></div>
-                    <div>Địa chỉ: ${esc(s.address || 'N/A')}</div>
-                  </div>
-                </div>
-              `);
-            stopMarkersList.push(sm);
-          });
-
-          map.fitBounds(polyline.getBounds(), { padding: [80, 80], maxZoom: 14 });
-        });
-      });
-    }
-
-    $(document).on('click', '.dp-vehicle-item', function() {
-      const plate = $(this).data('plate');
-      selectVehicle(plate);
-    });
-
-    $('#vehicle-search').on('input', function() {
-      renderVehicleList($(this).val());
-    });
-
-    $('#btn-zoom-truck').on('click', function() {
-      if (selectedPlate && markers[selectedPlate]) {
-        currentNavIndex = -1;
-        const m = markers[selectedPlate];
-        map.setView(m.getLatLng(), 15);
-        m.openPopup();
-      }
-    });
-
-    $('#btn-view-history').on('click', function() {
-      if (selectedPlate) {
-        loadGpsHistory(selectedPlate);
-      }
-    });
-
-    $('#btn-zoom-next').on('click', function() {
-      if (!stopMarkersList.length) {
-        return frappe.show_alert({ message: __('Xe chưa có điểm giao hàng active'), indicator: 'orange' });
-      }
-      if (currentNavIndex < stopMarkersList.length - 1) {
-        currentNavIndex++;
-      }
-      const sm = stopMarkersList[currentNavIndex];
-      if (sm) {
-        map.setView(sm.getLatLng(), 15);
-        sm.openPopup();
-      }
-    });
-
-    $('#btn-zoom-prev').on('click', function() {
-      if (!stopMarkersList.length) {
-        return frappe.show_alert({ message: __('Xe chưa có điểm giao hàng active'), indicator: 'orange' });
-      }
-      if (currentNavIndex > 0) {
-        currentNavIndex--;
-        const sm = stopMarkersList[currentNavIndex];
-        if (sm) {
-          map.setView(sm.getLatLng(), 15);
-          sm.openPopup();
-        }
-      } else {
-        currentNavIndex = -1;
-        if (selectedPlate && markers[selectedPlate]) {
-          const m = markers[selectedPlate];
-          map.setView(m.getLatLng(), 15);
-          m.openPopup();
-        }
-      }
-    });
-
-    $('#btn-hide-info').on('click', function() {
-      map.closePopup();
-      trackLayer.clearLayers();
-      routeLayer.clearLayers();
-      historyLayer.clearLayers();
-      selectedPlate = null;
-      currentNavIndex = -1;
-      stopMarkersList.length = 0;
-      $('.dp-vehicle-item').removeClass('active');$('#selected-vehicle-tag').hide();
-      $('#vehicle-actions-group').hide();
-    });
-
-    $('#btn-refresh').on('click', function() {
-      loadVehicles(true);
-    });
-
-    loadVehicles(false);
+    $('#btn-zoom-next',page.main).on('click',()=>navigate(1));
+    $('#btn-zoom-prev',page.main).on('click',()=>navigate(-1));
+    $('#btn-hide-info',page.main).on('click',()=>{map.closePopup();historyLayer.clearLayers();});
+    $('#btn-refresh',page.main).on('click',refresh);
+    wrapper.dp_refresh=refresh;
+    const timer=setInterval(async()=>{
+      if (!document.body.contains(wrapper)) {clearInterval(timer);return;}
+      if (polling || document.hidden || !$(wrapper).is(':visible') || !selected) return;
+      polling=true;
+      try {await draw();} catch (_) {status('Không tải được GPS. Hãy kiểm tra kết nối và bấm cập nhật.');}
+      finally {polling=false;}
+    },3000);
+    await refresh();
   });
 };
+frappe.pages['fleet-map'].on_page_show = function(wrapper) {return wrapper.dp_refresh?.();};

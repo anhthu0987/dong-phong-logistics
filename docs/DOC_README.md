@@ -11,7 +11,9 @@ Trạng thái mô tả ở đây là code hiện có trong repository; cấu hì
 Module đã tách theo [bảng mapping](MODULE_MAPPING.md). Sáu DocType tự xây nằm
 trong `dp_transport_orders/doctype`, `dp_fleet_operations/doctype` và
 `dp_tracking_and_pod/doctype`. `dp_transport_planning` là module điều phối mở rộng
-Delivery Trip chuẩn. `dp_dispatch` giữ vai trò đầu mối tương thích.
+Delivery Trip chuẩn. `dp_dispatch` giữ vai trò đầu mối tương thích và chứa mã trang/API GPS.
+Đây là tách module sở hữu DocType và Workspace; logic nghiệp vụ vẫn dùng các
+file Python chung ở gốc package, chưa phải các thành phần triển khai độc lập.
 
 ```text
 dong-phong-logistics/
@@ -32,6 +34,10 @@ dong-phong-logistics/
         │   ├── dp_fleet_operations/doctype/ # Bảo trì
         │   ├── dp_tracking_and_pod/doctype/ # Giao nhận, ePOD
         │   ├── dp_transport_planning/ # Điều phối, kế hoạch
+        │   ├── dp_dispatch/page/    # Nguồn JS duy nhất cho fleet-map, driver-gps
+        │   ├── dp_dispatch/api/     # Nhận GPS và bộ đệm Redis
+        │   ├── tracking.py          # Truy vấn theo chuyến và quyền GPS Log
+        │   ├── gps_setup.py         # Schema, quyền và Page GPS
         │   ├── module_navigation.py # Sáu Workspace nghiệp vụ
         │   ├── public/js/            # Client Scripts (Desk)
         │   ├── setup.py              # Custom Fields, quyền, workspace, scripts
@@ -74,6 +80,7 @@ Schema runtime do Frappe quản lý, không tự tạo bảng bằng câu lệnh
 
 - **Delivery Order** + **Delivery Order Item:** khách hàng, người gửi/nhận, địa chỉ, kiện hàng, số lượng/UOM, cân nặng, cước và trạng thái giao/cước.
 - **Delivery Confirmation** + **Delivery Confirmation Item:** chuyến, điểm dừng, người nhận, thời gian, chứng từ và lượng phân giao/thực nhận/trả lại/còn chờ.
+- **GPS Log:** tọa độ, thời điểm, xe, chuyến và mã bản tin; được tạo qua `gps_setup.py`, thuộc DP Tracking and POD.
 - **Fleet Maintenance Plan:** xe, hạng mục, chu kỳ km/ngày, mốc bảo dưỡng và trạng thái giữ xe.
 - **Fleet Maintenance Record:** kết quả thực hiện/nghiệm thu, số km và liên kết kế hoạch/Vehicle Log.
 
@@ -134,7 +141,8 @@ Các controller/hooks cũng thực hiện validation trực tiếp khi lưu/Subm
 
 ## 9. Giới hạn và dữ liệu demo
 
-- Không có GPS thật, tối ưu tuyến AI/OR, gửi email/Zalo bắt buộc, bản đồ realtime hay tích hợp kế toán/Payment Entry.
+- Đã có API nhận GPS, bộ đệm Redis, lịch sử theo chuyến và bản đồ cập nhật bằng polling 3 giây. Nguồn simulator là dữ liệu mô phỏng; chưa xác nhận kết nối thiết bị GPS thật, chưa có TCP Listener hay xác thực thiết bị phần cứng. Xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
+- Chưa có tối ưu tuyến AI/OR, Socket.IO cho vị trí GPS, gửi email/Zalo bắt buộc hay tích hợp hạch toán/Payment Entry. Đường nối điểm trên bản đồ chỉ biểu diễn thứ tự, chưa phải tuyến đường được Maps API tính.
 - Lịch bảo dưỡng tương lai chưa được so sánh trực tiếp với khoảng thời gian chuyến; bộ điều phối dựa trên tình trạng kỹ thuật xe hiện thời.
 - Một stop chỉ hỗ trợ một xác nhận đã Submit; giao nhiều đợt cần giữ bản xác nhận Draft cho tới khi hoàn tất.
 - Chi phí “Emergency Repair” ghi nhận chi phí/chứng từ; không tự tạo kế hoạch hay xác nhận bảo dưỡng.

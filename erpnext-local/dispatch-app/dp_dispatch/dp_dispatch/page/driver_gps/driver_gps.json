@@ -1,0 +1,20 @@
+{
+ "doctype": "Page",
+ "name": "driver-gps",
+ "page_name": "driver-gps",
+ "module": "DP Dispatch",
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Lịch trình Tài xế",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Fleet Manager"
+  },
+  {
+   "role": "DP Driver"
+  }
+ ]
+}

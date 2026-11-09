@@ -26,5 +26,6 @@ node_modules/
 erpnext-local/database/metadata.json
 erpnext-local/database/installation-result.json
 *.cmd
-TAI_KHOAN_VA_HUONG_DAN.md
+
+
 

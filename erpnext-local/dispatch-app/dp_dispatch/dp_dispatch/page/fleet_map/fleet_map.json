@@ -1,0 +1,20 @@
+{
+ "doctype": "Page",
+ "name": "fleet-map",
+ "page_name": "fleet-map",
+ "module": "DP Dispatch",
+ "standard": "Yes",
+ "system_page": 0,
+ "title": "Fleet map",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Fleet Manager"
+  },
+  {
+   "role": "DP Driver"
+  }
+ ]
+}

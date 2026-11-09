@@ -1,6 +1,6 @@
 {
   "base_url": "http://localhost:8086",
-  "site": "gps-review.localhost",
+  "site": "logistics-v16.localhost",
   "vehicle": "DEMO-GPS-01",
   "delivery_trip": "MAT-DT-2026-00001",
   "interval_seconds": 5,

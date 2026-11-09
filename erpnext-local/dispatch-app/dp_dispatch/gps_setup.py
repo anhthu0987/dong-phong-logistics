@@ -76,10 +76,7 @@ def setup_gps_log_doctype():
             "permissions": [
                 {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
                 {"role": "Fleet Manager", "read": 1, "write": 1, "create": 1, "delete": 0},
-                {"role": "GPS Device", "read": 1, "write": 0, "create": 1, "delete": 0},
-                {"role": "DP GPS Simulator", "read": 1, "write": 0, "create": 1, "delete": 0},
                 {"role": "DP Driver", "read": 1, "write": 0, "create": 0, "delete": 0},
-                {"role": "All", "read": 1, "write": 0, "create": 0, "delete": 0}
             ]
         })
         doc.insert(ignore_permissions=True)
@@ -107,3 +104,12 @@ def install_gps():
                 add_permission(dt, r, ptype=1)
                 if r == "Fleet Manager":
                     add_permission(dt, r, ptype=2)
+
+    gps_doc = frappe.get_doc('DocType', 'GPS Log')
+    gps_doc.module = 'DP Tracking and POD'
+    gps_doc.set('permissions', [p for p in gps_doc.permissions if p.role not in ('All', 'GPS Device', 'DP GPS Simulator')])
+    gps_doc.save(ignore_permissions=True)
+    for role in ('All', 'GPS Device', 'DP GPS Simulator'):
+        for row in frappe.get_all('Custom DocPerm', filters={'parent':'GPS Log', 'role':role}, pluck='name'):
+            frappe.delete_doc('Custom DocPerm', row, ignore_permissions=True)
+    frappe.clear_cache(doctype='GPS Log')

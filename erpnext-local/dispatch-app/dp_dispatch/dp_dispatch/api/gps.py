@@ -21,23 +21,8 @@ def _roles():
 
 def _get_current_driver():
     """Trả về tên Driver liên kết với user đang đăng nhập, hoặc None."""
-    user = frappe.session.user
-    if user in ("Administrator", "Guest"):
-        return None
-
-    meta = frappe.get_meta("Driver")
-    for field in ("custom_user", "user"):
-        if meta.has_field(field):
-            name = frappe.db.get_value("Driver", {field: user}, "name")
-            if name:
-                return name
-
-    # Fallback: Driver -> Employee -> User
-    if meta.has_field("employee"):
-        emp = frappe.db.get_value("Employee", {"user_id": user}, "name")
-        if emp:
-            return frappe.db.get_value("Driver", {"employee": emp}, "name")
-    return None
+    from dp_dispatch.permissions import driver_for_user
+    return driver_for_user()
 
 
 def _is_dispatcher():
@@ -77,12 +62,14 @@ def log_location():
     source_event_id = data.get("source_event_id")
     source_type = data.get("source_type", "Simulated")
 
+    if source_type not in ('Hardware GPS', 'Mobile App', 'Simulated'):
+        frappe.throw('Nguồn GPS không hợp lệ.')
     if not vehicle or not recorded_at or latitude is None or longitude is None or not source_event_id:
         frappe.throw(_("Thiếu thông tin bắt buộc trong bản tin GPS"))
 
     try:
-        lat = float(latitude)
-        lng = float(longitude)
+        lat = round(float(latitude), 9)
+        lng = round(float(longitude), 9)
         if not (-90 <= lat <= 90 and -180 <= lng <= 180):
             raise ValueError()
     except ValueError:
@@ -96,20 +83,34 @@ def log_location():
         if not delivery_trip or not _driver_owns_trip(_get_current_driver(), delivery_trip):
             frappe.throw(_("Bạn chỉ được ghi GPS cho chuyến được phân công."), frappe.PermissionError)
 
+    try:
+        ts_s = get_datetime(recorded_at).strftime("%Y-%m-%d %H:%M:%S.%f")
+    except Exception:
+        frappe.throw(_("recorded_at không hợp lệ"))
+
+    if not delivery_trip:
+        active = frappe.get_all("Delivery Trip", filters={"vehicle": vehicle, "docstatus": 1, "status": "In Transit"}, pluck="name", limit_page_length=2)
+        if len(active) > 1:
+            frappe.throw("Xe có nhiều chuyến đang chạy; cần xác định đúng chuyến.")
+        delivery_trip = active[0] if active else None
+        if delivery_trip:
+            started = frappe.db.get_value('Delivery Trip', delivery_trip, 'custom_started_at')
+            if not started or get_datetime(ts_s) < get_datetime(started):
+                # A delayed vehicle-only message must not be attached to a newer trip.
+                delivery_trip = None
+
     if delivery_trip:
+        state = frappe.db.get_value("Delivery Trip", delivery_trip, ["docstatus", "status"], as_dict=True)
+        if not state or state.docstatus != 1 or state.status != "In Transit":
+            frappe.throw("Chỉ ghi GPS theo chuyến đã bắt đầu và đang thực hiện.")
         trip_vehicle = frappe.db.get_value("Delivery Trip", delivery_trip, "vehicle")
         if trip_vehicle is None:
             frappe.throw(_("Chuyến {0} không tồn tại").format(delivery_trip))
         if trip_vehicle != vehicle:
             frappe.throw(_("Xe {0} không thuộc chuyến {1}").format(vehicle, delivery_trip))
 
-    try:
-        ts_s = get_datetime(recorded_at).strftime("%Y-%m-%d %H:%M:%S.%f")
-    except Exception:
-        frappe.throw(_("recorded_at không hợp lệ"))
-
     # Chỉ đẩy vào Redis; flusher (3s) sẽ ghi GPS Log + cập nhật Vehicle.custom_last_*
-    result = gps_redis.enqueue({
+    point = {
         "vehicle": vehicle,
         "delivery_trip": delivery_trip or None,
         "recorded_at": ts_s,
@@ -117,7 +118,18 @@ def log_location():
         "longitude": lng,
         "source_event_id": source_event_id,
         "source_type": source_type,
-    })
+    }
+    existing = frappe.db.get_value('GPS Log', {'source_event_id': source_event_id},
+        ['vehicle', 'delivery_trip', 'recorded_at', 'latitude', 'longitude', 'source_type'], as_dict=True)
+    if existing:
+        matches = (existing.vehicle == vehicle and (existing.delivery_trip or None) == point['delivery_trip']
+            and get_datetime(existing.recorded_at) == get_datetime(ts_s)
+            and float(existing.latitude) == lat and float(existing.longitude) == lng
+            and existing.source_type == source_type)
+        if not matches:
+            frappe.throw('source_event_id đã được lưu với dữ liệu khác.', frappe.DuplicateEntryError)
+        return {'status': 'ignored', 'source_event_id': source_event_id}
+    result = gps_redis.enqueue(point)
     if result == "duplicate":
         return {"status": "ignored", "message": "Bản tin trùng lặp đã được xử lý", "source_event_id": source_event_id}
     return {"status": "success", "queued": True, "source_event_id": source_event_id}
@@ -134,15 +146,16 @@ def get_gps_history(vehicle=None, delivery_trip=None, limit=100):
     if not vehicle and not delivery_trip:
         frappe.throw(_("Cần cung cấp vehicle hoặc delivery_trip"))
 
-    driver = None
-    if not _is_dispatcher():
-        driver = _get_current_driver()
-        if not driver:
-            frappe.throw(_("Bạn không có quyền xem dữ liệu GPS"), frappe.PermissionError)
-        if vehicle and not _driver_owns_vehicle(driver, vehicle):
-            frappe.throw(_("Bạn không có quyền xem GPS của xe {0}").format(vehicle), frappe.PermissionError)
-        if delivery_trip and not _driver_owns_trip(driver, delivery_trip):
-            frappe.throw(_("Chuyến {0} không thuộc về bạn").format(delivery_trip), frappe.PermissionError)
+    from dp_dispatch.tracking import require_reader, readable_trip
+    from dp_dispatch.permissions import is_driver
+    require_reader()
+    if delivery_trip:
+        doc = readable_trip(delivery_trip)
+        if vehicle and doc.vehicle != vehicle:
+            frappe.throw("Xe không thuộc chuyến đã chọn.")
+    driver = _get_current_driver() if is_driver() else None
+    if is_driver() and not driver:
+        frappe.throw("Tài khoản chưa liên kết tài xế.", frappe.PermissionError)
 
     conditions = []
     values = {}
@@ -159,96 +172,35 @@ def get_gps_history(vehicle=None, delivery_trip=None, limit=100):
         values["delivery_trip"] = delivery_trip
 
     where_clause = " AND ".join(conditions)
-    values["limit"] = int(limit)
+    values["limit"] = max(1, min(int(limit), 3000))
 
     query = f"""
         SELECT recorded_at, latitude, longitude, source_type, source_event_id
         FROM `tabGPS Log`
         WHERE {where_clause}
-        ORDER BY recorded_at ASC
+        ORDER BY recorded_at DESC, name DESC
         LIMIT %(limit)s
     """
 
-    return frappe.db.sql(query, values, as_dict=True)
+    return list(reversed(frappe.db.sql(query, values, as_dict=True)))
 
 
 # ----------------------------------------------------------------------
 # Trang tài xế: chỉ chính tài xế mới xem/thao tác được chuyến của mình
 # ----------------------------------------------------------------------
 @frappe.whitelist(methods=["GET", "POST"])
-def get_driver_schedule():
-    if frappe.session.user == "Guest":
-        frappe.throw(_("Cần đăng nhập để xem lịch trình"), frappe.PermissionError)
-
-    driver = _get_current_driver()
-    
-    # Strictly enforce driver identity and role check
-    if not driver or DRIVER_ROLE not in _roles():
-        return {"trip": None, "stops": []}
-
-    # Removed ignore_permissions=True to respect User Permissions
-    trips = frappe.get_all(
-        "Delivery Trip",
-        filters={
-            "driver": driver,
-            "docstatus": ["<", 2],
-            "status": ["not in", ["Completed", "Cancelled"]],
-        },
-        fields=["name", "vehicle", "driver_name", "status"],
-        order_by="departure_time desc",
-        limit_page_length=1
-    )
-
-    if not trips:
-        return {"trip": None, "stops": []}
-
-    trip = trips[0]
-    stops = frappe.get_all(
-        "Delivery Stop",
-        filters={"parent": trip["name"], "parenttype": "Delivery Trip"},
-        fields=["name", "idx", "customer", "address", "lat", "lng", "visited"],
-        order_by="idx asc",
-        limit_page_length=100
-    )
-
-    return {"trip": trip, "stops": stops}
+def get_driver_schedule(delivery_trip=None):
+    from dp_dispatch.tracking import list_trips, get_trip_tracking
+    trips = list_trips(active_only=1)
+    if not delivery_trip:
+        active = [t for t in trips if t.status == 'In Transit']
+        delivery_trip = (active or list(reversed(trips)))[0].name if trips else None
+    result = get_trip_tracking(delivery_trip) if delivery_trip else {'trip': None, 'stops': []}
+    result['trips'] = trips
+    return result
 
 
 @frappe.whitelist(methods=["POST"])
 def complete_delivery_stop(stop_name=None):
-    if frappe.session.user == "Guest":
-        frappe.throw(_("Cần đăng nhập để thực hiện thao tác này"), frappe.PermissionError)
-
-    if not stop_name:
-        stop_name = frappe.local.form_dict.get("stop_name")
-
-    if not stop_name or not frappe.db.exists("Delivery Stop", stop_name):
-        frappe.throw(_("Không tìm thấy điểm dừng hợp lệ"))
-
-    parent_trip = frappe.db.get_value("Delivery Stop", stop_name, "parent")
-
-    # Giữ khóa chuyến đến khi cập nhật xong, tránh xác nhận đồng thời với thao tác hủy.
-    trip = frappe.db.get_value(
-        "Delivery Trip", parent_trip, ["driver", "docstatus", "status"],
-        as_dict=True, for_update=True,
-    )
-
-    # Chỉ đúng tài xế của chuyến này mới được đánh dấu (không có ngoại lệ, kể cả quản trị)
-    driver = _get_current_driver()
-    if not trip or not driver or trip.driver != driver:
-        frappe.throw(_("Điểm dừng này không thuộc chuyến của bạn"), frappe.PermissionError)
-
-    if trip.docstatus == 2 or trip.status == "Cancelled":
-        frappe.throw(_("Không thể xác nhận điểm giao của chuyến đã hủy."))
-
-    frappe.db.set_value("Delivery Stop", stop_name, "visited", 1, update_modified=True)
-
-    unvisited_count = frappe.db.count("Delivery Stop", filters={"parent": parent_trip, "visited": 0})
-
-    trip_completed = False
-    if unvisited_count == 0:
-        frappe.db.set_value("Delivery Trip", parent_trip, "status", "Completed", update_modified=True)
-        trip_completed = True
-
-    frappe.db.commit()
-    return {"status": "success", "stop_name": stop_name, "trip_completed": trip_completed}
+    # Retired endpoint: old browser tabs must never bypass confirmation/approval.
+    frappe.throw("Hãy tải lại trang và dùng Ghi nhận lấy/giao để lập phiếu Delivery Confirmation. GPS không hoàn tất chuyến.")

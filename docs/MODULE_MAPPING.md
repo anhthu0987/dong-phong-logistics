@@ -9,7 +9,7 @@ DocType chuẩn giữ nguyên module của ERPNext/HRMS.
 | Đơn vận chuyển | DP Transport Orders | Delivery Order, Delivery Order Item |
 | Xe, tài xế và vận hành | DP Fleet Operations + Fleet chuẩn | Fleet Maintenance Plan/Record; liên kết Vehicle, Driver, Employee, Vehicle Log |
 | Điều phối và quản lý chuyến | DP Transport Planning + Stock chuẩn | Mở rộng Delivery Trip/Delivery Stop; chưa có chứng từ kế hoạch tối ưu |
-| Theo dõi và giao nhận | DP Tracking and POD | Delivery Confirmation/Item; GPS Log/Device chỉ xuất hiện khi đã được cài |
+| Theo dõi và giao nhận | DP Tracking and POD | Delivery Confirmation/Item; GPS Log cài qua gps_setup; GPS Device chỉ hiển thị nếu site có DocType này |
 | Hóa đơn, công nợ và báo cáo | Accounts chuẩn; Workspace DP Accounts | Sales Invoice, Purchase Invoice, Payment Entry |
 
 `DP Dispatch` được giữ làm module đầu mối và Workspace tổng quan để các liên kết
@@ -28,9 +28,23 @@ Hai Workspace DP Sales/DP Accounts không phải hai module kế toán/bán hàn
   cùng phiên bản trước khi kiểm tra. Không chỉ chép code vào một container.
 - Không cài thêm hoặc gỡ `dp_operations` trong thay đổi này.
 
-Việc tách module không tự bổ sung GPS, OR-Tools, Sales Order mapping hay tích hợp
-kế toán. Các liên kết tới DocType chuẩn là điểm truy cập; luồng tích hợp vẫn cần
-được triển khai và nghiệm thu riêng.
+Việc tách module không tự bổ sung tính năng nghiệp vụ. GPS hiện đã được nối
+với chuyến qua phần triển khai riêng, xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
+OR-Tools, Sales Order mapping và tích hợp kế toán chưa được bổ sung bởi thay đổi
+chia module. Các liên kết tới DocType chuẩn là điểm truy cập.
+
+## Ranh giới mã nguồn hiện tại
+
+- Các package nghiệp vụ sở hữu metadata/controller DocType; logic dùng chung vẫn
+  ở gốc `dp_dispatch`: `transport.py`, `validation.py`, `completion.py`,
+  `delivery_confirmation.py`, `maintenance.py` và `permissions.py`.
+- `hooks.py` nối document events và quyền vào các hàm này. Giữ đường dẫn hiện tại
+  để API và Client Script đang dùng không bị gãy.
+- GPS Log thuộc DP Tracking and POD, nhưng hai Page GPS vẫn thuộc DP Dispatch.
+  Nguồn JavaScript duy nhất là `dp_dispatch/dp_dispatch/page/<page>/<page>.js`
+  tính từ thư mục app. Frappe đọc trực tiếp theo module của Page; không đăng ký
+  thêm `page_js` cho hai trang này. API GPS giữ đường dẫn tương thích cũ.
+- Đây là một app triển khai chung, không phải sáu app hay sáu dịch vụ độc lập.
 
 ## Kiểm chứng local
 

@@ -46,54 +46,63 @@ def enqueue(point):
     Returns "queued" or "duplicate"; raises DuplicateEntryError on conflicting replay.
     """
     r = _r()
-    sig = f"{point['latitude']},{point['longitude']}"
-    evt_key = _k(f"evt:{point['source_event_id']}")
-    if not r.set(evt_key, sig, nx=True, ex=EVENT_TTL):
-        if r.get(evt_key) == sig:
-            return "duplicate"
-        frappe.throw(
-            f"Conflict: source_event_id {point['source_event_id']} already used with different data",
-            frappe.DuplicateEntryError,
-        )
-
-    veh, ts_s = point["vehicle"], point["recorded_at"]
-    prev = r.hget(_k("latest"), veh)
-    pipe = r.pipeline()
-    if not prev or json.loads(prev)["recorded_at"] <= ts_s:   # ignore out-of-order for "latest"
-        pipe.hset(_k("latest"), veh, json.dumps(point))
-        pipe.expire(_k("latest"), LATEST_TTL)
-    pipe.rpush(_k("buffer"), json.dumps(point))
-    pipe.execute()
-    return "queued"
+    if point.get('delivery_trip') and not r.exists(_k('trip:' + point['delivery_trip'])):
+        previous = latest_for_trip(point['delivery_trip'], point['vehicle'])
+        if previous:
+            r.set(_k('trip:' + point['delivery_trip']), json.dumps(dict(previous), default=str), nx=True, ex=LATEST_TTL)
+    sig = json.dumps(point, sort_keys=True)
+    # One atomic operation: deduplication, monotonic latest positions and enqueue.
+    result = r.eval("""
+        local previous = redis.call('GET', KEYS[1])
+        if previous then
+            if previous == ARGV[1] then return 'duplicate' end
+            return 'conflict'
+        end
+        redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[4])
+        for i=3,4 do
+            if KEYS[i] ~= '' then
+                local old = redis.call('GET', KEYS[i])
+                if not old or cjson.decode(old).recorded_at <= ARGV[2] then
+                    redis.call('SET', KEYS[i], ARGV[1], 'EX', ARGV[3])
+                end
+            end
+        end
+        redis.call('RPUSH', KEYS[2], ARGV[1])
+        return 'queued'
+    """, 4, _k('evt:' + point['source_event_id']), _k('buffer'),
+        _k('vehicle:' + point['vehicle']),
+        _k('trip:' + point['delivery_trip']) if point.get('delivery_trip') else '',
+        sig, point['recorded_at'], LATEST_TTL, EVENT_TTL)
+    if result == 'conflict':
+        frappe.throw('source_event_id đã được dùng với dữ liệu khác.', frappe.DuplicateEntryError)
+    return result
 
 
 # ------------------------------------------------------------------ read ---
-@frappe.whitelist()
-def get_live_positions():
-    """Fleet map data: Vehicle meta + Redis latest (fallback to last DB value)."""
-    if not frappe.has_permission("Vehicle", "read"):
-        frappe.throw("Not permitted", frappe.PermissionError)
+def latest_for_trip(trip, vehicle):
+    cached = _r().get(_k('trip:' + trip))
+    point = json.loads(cached) if cached else None
+    if point and point.get('vehicle') == vehicle:
+        return point
+    rows = frappe.get_all('GPS Log', filters={'delivery_trip': trip, 'vehicle': vehicle},
+        fields=['vehicle', 'delivery_trip', 'latitude', 'longitude', 'recorded_at', 'source_type'],
+        order_by='recorded_at desc, name desc', limit_page_length=1)
+    return rows[0] if rows else None
 
-    live = {k: json.loads(v) for k, v in _r().hgetall(_k("latest")).items()}
-    rows = frappe.get_all(
-        "Vehicle",
-        fields=["name", "custom_technical_status", "custom_gps_device_id",
-                "custom_last_lat", "custom_last_lng", "custom_last_gps_time"],
-        order_by="name asc", limit_page_length=500,
-    )
+
+@frappe.whitelist()
+def get_live_positions(delivery_trip=None):
+    """Only positions belonging to readable trips; never a vehicle's later trip."""
+    from dp_dispatch.tracking import list_trips, readable_trip
+    trips = [readable_trip(delivery_trip)] if delivery_trip else list_trips(active_only=1)
     out = []
-    for v in rows:
-        p = live.get(v.name)
-        if p:
-            lat, lng, t, src = p["latitude"], p["longitude"], p["recorded_at"][:19], p["source_type"]
-        elif v.custom_last_lat and v.custom_last_lng:
-            lat, lng, t, src = v.custom_last_lat, v.custom_last_lng, str(v.custom_last_gps_time or "")[:19], "Hardware GPS"
-        else:
-            lat = lng = t = src = None
+    for trip in trips:
+        p = latest_for_trip(trip.name, trip.vehicle)
         out.append({
-            "plate": v.name, "status": v.custom_technical_status,
-            "device": v.custom_gps_device_id,
-            "lat": lat, "lng": lng, "time": t, "source_type": src,
+            'plate': trip.vehicle, 'delivery_trip': trip.name, 'status': trip.status,
+            'lat': p['latitude'] if p else None, 'lng': p['longitude'] if p else None,
+            'time': str(p['recorded_at']) if p else None,
+            'source_type': p['source_type'] if p else None,
         })
     return out
 
@@ -144,11 +153,12 @@ def _write(points):
         if p["vehicle"] not in latest or latest[p["vehicle"]]["recorded_at"] <= p["recorded_at"]:
             latest[p["vehicle"]] = p
     for veh, p in latest.items():
-        frappe.db.set_value("Vehicle", veh, {
-            "custom_last_lat": p["latitude"],
-            "custom_last_lng": p["longitude"],
-            "custom_last_gps_time": p["recorded_at"],
-        }, update_modified=False)
+        # Delayed batches cannot rewind the persisted fallback position.
+        frappe.db.sql("""UPDATE `tabVehicle`
+            SET custom_last_lat=%s, custom_last_lng=%s, custom_last_gps_time=%s
+            WHERE name=%s AND (custom_last_gps_time IS NULL OR custom_last_gps_time <= %s)""",
+            (p['latitude'], p['longitude'], p['recorded_at'], veh, p['recorded_at']))
+
 
 
 def run_flusher():

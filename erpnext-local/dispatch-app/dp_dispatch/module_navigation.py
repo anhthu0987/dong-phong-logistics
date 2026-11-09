@@ -60,15 +60,20 @@ def _workspace(name, title, module, groups, sequence):
 
 
 def install_workspaces():
+    def links_for(name, doctypes):
+        links = [(label, dt, 'DocType') for label, dt in doctypes]
+        if name == 'DP Tracking and POD':
+            links += [('Bản đồ theo chuyến', 'fleet-map', 'Page'), ('Lịch trình tài xế', 'driver-gps', 'Page')]
+        return links
     for index, (name, title, module, doctypes) in enumerate(AREAS):
         _workspace(name, title, module,
-                   [(title, [(label, dt, 'DocType') for label, dt in doctypes])], 51 + index)
+                   [(title, links_for(name, doctypes))], 51 + index)
     # Keep the existing landing URL as a hub, without owning business DocTypes.
     # Workspace Link in Frappe v15 accepts DocType/Page/Report, not Workspace.
     # The six independent workspaces also appear in the Desk workspace list.
     _workspace('DP Dispatch', 'Đông Phong Logistics', 'DP Dispatch', [
-        (title, [(label, dt, 'DocType') for label, dt in doctypes])
-        for _, title, _, doctypes in AREAS
+        (title, links_for(name, doctypes))
+        for name, title, _, doctypes in AREAS
     ], 50)
 
 

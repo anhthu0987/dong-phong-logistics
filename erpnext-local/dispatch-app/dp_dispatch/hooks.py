@@ -17,6 +17,7 @@ doctype_js = {
 }
 
 permission_query_conditions = {
+    'GPS Log': 'dp_dispatch.tracking.gps_log_query',
 	'Vehicle Log': 'dp_dispatch.permissions.vehicle_log_query',
 	'Vehicle': 'dp_dispatch.permissions.vehicle_query',
     'Delivery Trip': 'dp_dispatch.permissions.trip_query',
@@ -24,6 +25,7 @@ permission_query_conditions = {
     'Delivery Order': 'dp_dispatch.permissions.delivery_order_query',
 }
 has_permission = {
+    'GPS Log': 'dp_dispatch.tracking.has_gps_log_permission',
 	'Vehicle Log': 'dp_dispatch.permissions.has_vehicle_log_permission',
 	'Vehicle': 'dp_dispatch.permissions.has_vehicle_permission',
     'Delivery Trip': 'dp_dispatch.permissions.has_trip_permission',
@@ -70,10 +72,8 @@ doc_events = {
     },
 }
 
-page_js = {
-    "fleet-map": "page/fleet_map/fleet_map.js",
-    "driver-gps": "page/driver_gps/driver_gps.js"
-}
+# GPS pages use the standard Page loader under dp_dispatch/page/.
+# Do not also register page_js: Frappe would append the same script twice.
 
 scheduler_events = {
     "cron": {

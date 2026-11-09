@@ -1,177 +1,73 @@
 frappe.pages['driver-gps'].on_page_load = function (wrapper) {
-  const page = frappe.ui.make_app_page({
-    parent: wrapper,
-    title: __('Lịch trình Tài xế'),
-    single_column: true
-  });
-
-  $(wrapper).find('.page-content').css({ 'padding': '12px', 'margin': '0' });
-
-  $(page.main).html(`
-    <style>
-      .dp-driver-container {
-        font-family: var(--font-stack, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      .dp-trip-card {
-        background: #000000;
-        color: #ffffff;
-        padding: 16px;
-        border-radius: 10px;
-        margin-bottom: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      }
-      .dp-stop-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 14px;
-        margin-bottom: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      }
-      .dp-badge-status {
-        display: inline-block;
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-weight: 700;
-      }
-      .dp-btn-map {
-        background: #000000;
-        color: #ffffff !important;
-        border: 1px solid #000000;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        text-decoration: none !important;
-      }
-      .dp-btn-complete {
-        background: #16a34a;
-        color: #ffffff !important;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-      }
-      .dp-btn-complete:hover {
-        background: #15803d;
-      }
-    </style>
-
-    <div class="dp-driver-container">
-      <div class="dp-trip-card">
-        <div style="font-size: 12px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px;">Chuyến hàng đang thực hiện</div>
-        <div id="driver-trip-title" style="font-size: 18px; font-weight: 700; margin-top: 4px;">Đang tải...</div>
-        <div id="driver-vehicle-info" style="font-size: 13px; color: #e4e4e7; margin-top: 2px;"></div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #111827;">📍 Danh sách điểm hẹn</h4>
-        <button id="btn-refresh-driver" class="btn btn-default btn-xs"><i class="fa fa-refresh"></i> Cập nhật</button>
-      </div>
-
-      <div id="driver-stops-list">
-        <div style="text-align: center; color: #9ca3af; padding: 20px;">Đang tải điểm hẹn...</div>
-      </div>
-    </div>
-  `);
-
-  const esc = frappe.utils.escape_html;
-
-  function loadDriverSchedule() {
-    frappe.call({
-      method: 'dp_dispatch.dp_dispatch.api.gps.get_driver_schedule',
-      callback: function (r) {
-        if (!r.message || !r.message.trip) {
-          $('#driver-trip-title').text('Chưa có chuyến hàng');
-          $('#driver-vehicle-info').text('Hiện tại chưa có chuyến xe active được phân công.');
-          $('#driver-stops-list').html('<div style="text-align: center; color: #9ca3af; padding: 30px;">Không có điểm hẹn giao hàng nào.</div>');
-          return;
-        }
-
-        const trip = r.message.trip;
-        const stops = r.message.stops || [];
-
-        $('#driver-trip-title').text(trip.name);
-        $('#driver-vehicle-info').html('<i class="fa fa-truck" style="color:#ffffff; margin-right:4px;"></i> Xe: <b>' + esc(trip.vehicle || 'N/A') + '</b> | Tài xế: ' + esc(trip.driver_name || 'N/A'));
-
-        const container = $('#driver-stops-list').empty();
-
-        if (!stops.length) {
-          container.html('<div style="text-align: center; color: #9ca3af; padding: 20px;">Chuyến hàng chưa cấu hình điểm dừng.</div>');
-          return;
-        }
-
-        stops.forEach(function (s) {
-          const isVisited = s.visited == 1;
-          const statusBg = isVisited ? '#dcfce7' : '#fef3c7';
-          const statusColor = isVisited ? '#15803d' : '#b45309';
-          const statusText = isVisited ? 'Đã hoàn thành' : 'Chờ ghé';
-
-          const mapBtnHtml = (s.lat && s.lng) 
-            ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + s.lat + ',' + s.lng + '" target="_blank" class="dp-btn-map"><i class="fa fa-location-arrow" style="color: #ffffff;"></i> Chỉ đường</a>'
-            : '';
-
-          const actionBtnHtml = isVisited 
-            ? '<span style="font-size: 12px; color: #16a34a; font-weight: 600;"><i class="fa fa-check-circle"></i> Đã đến nơi</span>'
-            : '<button class="dp-btn-complete btn-mark-complete" data-stop-name="' + s.name + '"><i class="fa fa-check"></i> Đánh dấu Đã đến</button>';
-
-          container.append(
-            '<div class="dp-stop-card">' +
-              '<div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
-                '<div>' +
-                  '<span style="font-weight: 700; font-size: 14px; color: #111827;">#' + s.idx + '. ' + esc(s.customer || 'Khách hàng') + '</span>' +
-                '</div>' +
-                '<span class="dp-badge-status" style="background: ' + statusBg + '; color: ' + statusColor + ';">' + statusText + '</span>' +
-              '</div>' +
-              '<div style="font-size: 12px; color: #4b5563; margin-top: 6px; line-height: 1.4;">' +
-                '<i class="fa fa-map-marker" style="color: #6b7280; margin-right: 4px;"></i>' + esc(s.address || 'Chưa cập nhật địa chỉ') +
-              '</div>' +
-              '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #f3f4f6; padding-top: 8px;">' +
-                mapBtnHtml +
-                actionBtnHtml +
-              '</div>' +
-            '</div>'
-          );
-        });
-
-        // Đăng ký sự kiện nút Đánh dấu Hoàn thành
-        $('.btn-mark-complete').off('click').on('click', function () {
-          const stopName = $(this).data('stop-name');
-          const btn = $(this);
-          btn.prop('disabled', true).text('Đang xử lý...');
-
-          frappe.call({
-            method: 'dp_dispatch.dp_dispatch.api.gps.complete_delivery_stop',
-            args: { stop_name: stopName },
-            callback: function (res) {
-              if (res.message && res.message.status === 'success') {
-                frappe.show_alert({ message: __('Đã cập nhật trạng thái điểm dừng!'), indicator: 'green' });
-                if (res.message.trip_completed) {
-                  frappe.msgprint(__('🎉 Chúc mừng! Bạn đã hoàn thành tất cả các điểm dừng trong chuyến hàng!'));
-                }
-                loadDriverSchedule();
-              }
-            }
-          });
-        });
-      }
-    });
+  const page = frappe.ui.make_app_page({parent: wrapper, title: __('Lịch trình tài xế'), single_column: true});
+  const esc = value => frappe.utils.escape_html(String(value ?? ''));
+  const main = $(page.main).html(`<div style="max-width:800px;margin:auto">
+    <div class="form-group"><label>Chuyến được phân công</label><select class="form-control dp-trip-select"></select></div>
+    <div class="dp-trip-summary"></div><div class="dp-trip-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0"></div>
+    <div class="dp-stops"></div></div>`);
+  let selected = null, serial = 0;
+  const kinds = {Pickup:'Lấy hàng', Delivery:'Giao hàng', Return:'Trả người gửi'};
+  const states = {'Picked Up':'Đã lấy hàng', Delivered:'Đã giao', Partial:'Giao một phần', Returned:'Đã trả', Assigned:'Chờ thực hiện', Exception:'Sự cố'};
+  function button(label, action) {
+    return $('<button class="btn btn-default btn-sm">').text(label).on('click', action);
   }
-
-  $('#btn-refresh-driver').on('click', function () {
-    loadDriverSchedule();
-  });
-
-  loadDriverSchedule();
+  async function run(action, args = {}) {
+    await frappe.call({method:'dp_dispatch.completion.' + action, args:{trip:selected, ...args}, freeze:true});
+    await load();
+  }
+  async function load() {
+    const request = ++serial;
+    const {message:data} = await frappe.call({method:'dp_dispatch.dp_dispatch.api.gps.get_driver_schedule', args:{delivery_trip:selected}});
+    if (request !== serial) return;
+    const select = main.find('.dp-trip-select').empty();
+    const trips = data.trips || [];
+    if (data.trip && !trips.some(t => t.name === data.trip.name)) trips.unshift(data.trip);
+    trips.forEach(t => $('<option>').val(t.name).text(`${t.name} · ${t.vehicle || ''} · ${t.status}`).appendTo(select));
+    const actions = main.find('.dp-trip-actions').empty();
+    const cards = main.find('.dp-stops').empty();
+    if (!data.trip) {
+      selected = null;
+      main.find('.dp-trip-summary').text('Chưa có chuyến đã Submit được phân công.');
+      return;
+    }
+    const trip = data.trip;
+    selected = trip.name;
+    select.val(selected);
+    main.find('.dp-trip-summary').html(`<h3>${esc(trip.name)}</h3><p>${esc(trip.vehicle)} · ${esc(trip.status)} · Duyệt: ${esc(trip.custom_completion_status || 'Open')}</p>
+      <p>Hàng trên xe: <b>${esc(trip.custom_onboard_quantity || '0')}</b> · ${esc(trip.custom_onboard_weight_kg || 0)} kg</p>`);
+    actions.append(button('Mở phiếu chuyến', () => frappe.set_route('Form','Delivery Trip',selected)));
+    actions.append(button('Bản đồ chuyến', () => {frappe.route_options={delivery_trip:selected}; frappe.set_route('fleet-map');}));
+    if (trip.status === 'Scheduled') actions.append(button('Bắt đầu chuyến', () => frappe.confirm('Xác nhận bắt đầu chuyến?', () => run('start_trip'))));
+    if (trip.status === 'In Transit' && !['Requested','Approved','Exception Requested','Exception Closed'].includes(trip.custom_completion_status)) {
+      actions.append(button('Gửi yêu cầu hoàn tất', () => frappe.confirm('Gửi Admin duyệt sau khi đã xử lý hàng và thu đủ cước?', () => run('request_completion'))));
+      actions.append(button('Báo sự cố', () => frappe.prompt([{fieldname:'note',fieldtype:'Small Text',label:'Mô tả sự cố',reqd:1}], values => run('request_incident_closure',values))));
+    }
+    for (const stop of data.stops) {
+      const q = stop.quantities || {};
+      const card = $('<div class="frappe-card" style="padding:16px;margin-bottom:12px">').appendTo(cards);
+      card.html(`<h4>${esc(stop.idx)}. ${esc(kinds[stop.operation] || stop.operation)} · ${esc(stop.customer)}</h4>
+        <p>${esc(stop.address)}</p><p>Đơn: ${esc(stop.order)} · ${esc(states[stop.status] || stop.status)}</p>
+        <p>Khung giờ: ${esc(stop.window_start || '—')} → ${esc(stop.window_end || '—')}</p>
+        <p>Đã lấy: ${esc(q.picked_up || 0)} · Đã giao: ${esc(q.delivered || 0)} · Đã trả: ${esc(q.returned_to_sender || 0)} · Còn chờ: ${esc(q.pending || 0)}</p>`);
+      const controls = $('<div style="display:flex;gap:8px;flex-wrap:wrap">').appendTo(card);
+      if (stop.lat != null && stop.lng != null) $('<a class="btn btn-default btn-sm" target="_blank" rel="noopener">')
+        .attr('href',`https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`).text('Chỉ đường').appendTo(controls);
+      const submitted = stop.confirmations.find(c => c.docstatus === 1);
+      const draft = stop.confirmations.find(c => c.docstatus === 0);
+      if (submitted || draft) {
+        const doc = submitted || draft;
+        controls.append(button(submitted ? 'Xem phiếu giao nhận' : 'Tiếp tục phiếu đang nhập', () => frappe.set_route('Form','Delivery Confirmation',doc.name)));
+      } else if (trip.status === 'In Transit' && !trip.custom_completed_at) {
+        controls.append(button('Ghi nhận ' + (kinds[stop.operation] || 'giao nhận').toLowerCase(), () =>
+          frappe.new_doc('Delivery Confirmation',{delivery_trip:trip.name,delivery_stop:stop.name})));
+      }
+    }
+  }
+  main.find('.dp-trip-select').on('change', function () {selected=this.value; load();});
+  page.set_secondary_action('Cập nhật', load);
+  wrapper.dp_refresh = () => {
+    if (frappe.route_options?.delivery_trip) {selected=frappe.route_options.delivery_trip; frappe.route_options=null;}
+    return load();
+  };
 };
+frappe.pages['driver-gps'].on_page_show = function (wrapper) { return wrapper.dp_refresh?.(); };
