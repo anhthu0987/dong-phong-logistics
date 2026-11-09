@@ -17,7 +17,6 @@ Hệ thống đang hoạt động và được public qua đường dẫn cố �
 ## 📚 Tài liệu bắt đầu nhanh
 
 - **[TAI_KHOAN_VA_HUONG_DAN](TAI_KHOAN_VA_HUONG_DAN.md)**: Hướng dẫn đăng nhập, tài khoản Admin/Tài xế và các bước thực hành quy trình giao vận thực tế.
-- **[MAT_KHAU](MAT_KHAU.md)**: Danh sách tài khoản mật khẩu phục vụ chấm điểm và demo.
 - **[MODULE_MAPPING](docs/MODULE_MAPPING.md)**: Kiến trúc 6 phân hệ cốt lõi: Tái sử dụng (Reuse), Mở rộng (Customize) và Viết mới (Build new).
 - **[DOC_README](docs/DOC_README.md)**: Kiến trúc app, cấu trúc thư mục, DocType/schema, luồng nghiệp vụ, validation và API.
 - **[PLANNING_OSRM](docs/PLANNING_OSRM.md)**: Hệ thống lập kế hoạch tuyến đường tự động bằng OSRM (OpenStreetMap) và Google OR-Tools.
