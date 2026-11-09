@@ -58,19 +58,21 @@ def vehicle_query(user=None):
 		"where driver=" + frappe.db.escape(driver) + " and docstatus=1 and vehicle is not null)")
 
 
-def has_trip_permission(doc, user=None, permission_type=None):
+def has_trip_permission(doc, user=None, permission_type=None, ptype=None):
+	permission_type = permission_type or ptype
 	user = user or frappe.session.user
 	if not is_driver(user):
-		return None
+		return True
 	if permission_type not in ("read", "select", None):
 		return False
 	return bool(doc.docstatus == 1 and driver_for_user(user) and doc.driver == driver_for_user(user))
 
 
-def has_confirmation_permission(doc, user=None, permission_type=None):
+def has_confirmation_permission(doc, user=None, permission_type=None, ptype=None):
+	permission_type = permission_type or ptype
 	user = user or frappe.session.user
 	if not is_driver(user):
-		return None
+		return True
 	if permission_type not in ("read", "select", "create", "write", "submit", None):
 		return False
 	name = getattr(doc, "name", None)
@@ -81,10 +83,11 @@ def has_confirmation_permission(doc, user=None, permission_type=None):
 	return bool(doc.delivery_trip and has_trip_permission(frappe.get_doc("Delivery Trip", doc.delivery_trip), user))
 
 
-def has_delivery_order_permission(doc, user=None, permission_type=None):
+def has_delivery_order_permission(doc, user=None, permission_type=None, ptype=None):
+	permission_type = permission_type or ptype
 	user = user or frappe.session.user
 	if not is_driver(user):
-		return None
+		return True
 	if permission_type not in ("read", "select", None):
 		return False
 	driver = driver_for_user(user)
@@ -94,10 +97,11 @@ def has_delivery_order_permission(doc, user=None, permission_type=None):
 		AND trip.driver=%s AND trip.docstatus=1 LIMIT 1""", (doc.name, driver)))
 
 
-def has_vehicle_log_permission(doc, user=None, permission_type=None):
+def has_vehicle_log_permission(doc, user=None, permission_type=None, ptype=None):
+	permission_type = permission_type or ptype
 	user = user or frappe.session.user
 	if not is_driver(user):
-		return None
+		return True
 	if permission_type == "create":
 		return True
 	if doc.owner != user:
@@ -109,10 +113,11 @@ def has_vehicle_log_permission(doc, user=None, permission_type=None):
 	return False
 
 
-def has_vehicle_permission(doc, user=None, permission_type=None):
+def has_vehicle_permission(doc, user=None, permission_type=None, ptype=None):
+	permission_type = permission_type or ptype
 	user = user or frappe.session.user
 	if not is_driver(user):
-		return None
+		return True
 	if permission_type not in ("read", "select", None):
 		return False
 	driver = driver_for_user(user)

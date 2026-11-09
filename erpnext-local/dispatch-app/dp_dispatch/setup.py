@@ -77,10 +77,16 @@ def install():
     sync_existing_quotation_delivery_order_links()
     from dp_dispatch.permissions import install_permissions
     install_permissions()
-    install_client_script('DP Dispatch Delivery Order', 'Delivery Order', 'delivery_order.js')
-    install_client_script('DP Dispatch Delivery Confirmation', 'Delivery Confirmation', 'delivery_confirmation.js')
+    # Loaded by doctype_js; disable the legacy duplicate Client Script.
+    if frappe.db.exists('Client Script', 'DP Dispatch Delivery Order'):
+        frappe.db.set_value('Client Script', 'DP Dispatch Delivery Order', 'enabled', 0)
+    # Loaded by doctype_js; disable the legacy duplicate Client Script.
+    if frappe.db.exists('Client Script', 'DP Dispatch Delivery Confirmation'):
+        frappe.db.set_value('Client Script', 'DP Dispatch Delivery Confirmation', 'enabled', 0)
     install_client_script('DP Dispatch Quotation', 'Quotation', 'quotation.js')
-    install_client_script('DP Dispatch Fleet Maintenance Record', 'Fleet Maintenance Record', 'fleet_maintenance_record.js')
+    # Loaded by doctype_js; disable the legacy duplicate Client Script.
+    if frappe.db.exists('Client Script', 'DP Dispatch Fleet Maintenance Record'):
+        frappe.db.set_value('Client Script', 'DP Dispatch Fleet Maintenance Record', 'enabled', 0)
     install_client_script('DP Dispatch Vehicle Log', 'Vehicle Log', 'vehicle_log.js')
     install_dispatch_workspace()
     install_dispatch_sidebar()

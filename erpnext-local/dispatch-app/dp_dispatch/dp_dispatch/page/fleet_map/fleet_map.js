@@ -266,8 +266,19 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
   }
 
   function loadJs(url, callback) {
-    if (window.L) { callback(); return; }
-    const script = document.createElement('script'); script.src = url; script.onload = callback; document.head.appendChild(script);
+    // Frappe can expose an L namespace before Leaflet's map API is ready.
+    if (typeof window.L?.map === 'function') { callback(); return; }
+    const script = document.createElement('script');
+    script.src = url;
+    const failed = () => {
+      $('#vehicle-list-container', page.main).text('Không tải được thư viện bản đồ. Hãy kiểm tra kết nối và tải lại trang.');
+    };
+    script.onload = () => {
+      if (typeof window.L?.map === 'function') callback();
+      else failed();
+    };
+    script.onerror = failed;
+    document.head.appendChild(script);
   }
 
   loadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
@@ -295,10 +306,21 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
     const routeLayer = L.layerGroup().addTo(map);
     const historyLayer = L.layerGroup().addTo(map);
     const positionLayer = L.layerGroup().addTo(map);
-    const controls = $('<div class="form-group" style="padding:12px"><label>Chuyến vận chuyển</label><select class="form-control dp-map-trip"></select><div class="dp-map-status text-muted" style="margin-top:8px"></div></div>').prependTo(page.main);
+    const controls = $('<div class="form-group" style="padding:12px"><label>Chuyến vận chuyển</label><select class="form-control dp-map-trip"></select><div class="dp-connection text-muted" role="status"></div><div class="dp-map-status text-muted" style="margin-top:8px"></div></div>').prependTo(page.main);
     const selector = controls.find('select');
     let selected = null, generation = 0, polling = false, positionMarker = null;
-    let stopMarkers = [], nav = -1, trips = [];
+    let stopMarkers = [], nav = -1, trips = [], snapshot = null;
+    let lastSync = 0, leaseUntil = 0;
+    const socket = frappe.realtime?.socket;
+    const connected = () => Boolean(socket?.connected && Date.now() < leaseUntil);
+    function connectionStatus() {
+      controls.find(".dp-connection").text(connected() ? "Trực tiếp · Socket.IO" : "Kết nối trực tiếp gián đoạn · cập nhật dự phòng mỗi 3 giây");
+    }
+    async function watch(name) {
+      const {message} = await frappe.call({method:"dp_dispatch.dp_tracking_and_pod.realtime.watch_trip",args:{delivery_trip:name},type:"POST"});
+      if (selected === name) leaseUntil = Date.now() + message.expires_in * 1000;
+      connectionStatus();
+    }
     function coord(p) { return p && p.lat != null && p.lng != null; }
     function status(text) { controls.find('.dp-map-status').text(text); }
     function renderTrips(keyword = '') {
@@ -314,6 +336,14 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
       const tripName = selected, token = generation;
       const {message:data} = await frappe.call({method:'dp_dispatch.tracking.get_trip_tracking',args:{delivery_trip:tripName}});
       if (token !== generation || selected !== tripName) return;
+      // A slower snapshot response must not overwrite a newer pushed position.
+      if (snapshot?.trip.name === tripName && snapshot.position && (!data.position || String(snapshot.position.recorded_at) > String(data.position.recorded_at))) data.position = snapshot.position;
+      snapshot = data;
+      lastSync = Date.now();
+      render(data, fit);
+    }
+    function render(data, fit = false) {
+      const tripName = data.trip.name;
       routeLayer.clearLayers(); positionLayer.clearLayers(); stopMarkers=[]; positionMarker=null;
       const points = [], missing = [];
       const path = [];
@@ -345,9 +375,10 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
     }
     async function choose(name) {
       generation++;
-      selected=name; nav=-1; selector.val(name);
+      selected=name; snapshot=null; leaseUntil=0; nav=-1; selector.val(name);
       historyLayer.clearLayers(); routeLayer.clearLayers(); positionLayer.clearLayers();
       stopMarkers=[]; positionMarker=null;
+      await watch(name);
       await draw(true);
     }
     async function refresh() {
@@ -391,12 +422,53 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
     $('#btn-hide-info',page.main).on('click',()=>{map.closePopup();historyLayer.clearLayers();});
     $('#btn-refresh',page.main).on('click',refresh);
     wrapper.dp_refresh=refresh;
+    const onPosition = point => {
+      if (!snapshot || point.delivery_trip !== selected || point.vehicle !== snapshot.trip.vehicle || snapshot.trip.status !== 'In Transit') return;
+      if (snapshot.position && String(point.recorded_at) < String(snapshot.position.recorded_at)) return;
+      if (document.hidden || !$(wrapper).is(':visible')) return;
+      snapshot.position = point;
+      render(snapshot);
+    };
+    const onConnect = () => {lastSync=0; leaseUntil=0; connectionStatus();};
+    const onDisconnect = () => {leaseUntil=0; connectionStatus();};
+    frappe.realtime.on('dp_gps_position', onPosition);
+    socket?.on('connect', onConnect);
+    socket?.on('disconnect', onDisconnect);
+    socket?.on('connect_error', onDisconnect);
+    connectionStatus();
     const timer=setInterval(async()=>{
-      if (!document.body.contains(wrapper)) {clearInterval(timer);return;}
+      if (!document.body.contains(wrapper)) {
+        clearInterval(timer);
+        frappe.realtime.off('dp_gps_position', onPosition);
+        socket?.off('connect', onConnect);
+        socket?.off('disconnect', onDisconnect);
+        socket?.off('connect_error', onDisconnect);
+        return;
+      }
       if (polling || document.hidden || !$(wrapper).is(':visible') || !selected) return;
+      connectionStatus();
+      // Push moves the marker immediately. A 30s snapshot reconciles permissions,
+      // trip completion, missed messages and renews the short-lived watch.
+      if (connected() && Date.now()-lastSync < 30000) {
+        if (snapshot) render(snapshot); // refresh stale indicator without HTTP
+        return;
+      }
       polling=true;
-      try {await draw();} catch (_) {status('Không tải được GPS. Hãy kiểm tra kết nối và bấm cập nhật.');}
-      finally {polling=false;}
+      const name=selected;
+      try {
+        if (!socket?.connected && !frappe.realtime.disabled) {
+          frappe.realtime.connect();
+          if (socket && !socket.active) socket.connect();
+        }
+        await watch(name);
+        if (selected === name) await draw();
+      } catch (_) {
+        if (selected === name) {
+          snapshot=null; leaseUntil=0;
+          routeLayer.clearLayers(); positionLayer.clearLayers(); historyLayer.clearLayers();
+          status('Không tải được dữ liệu hoặc quyền xem đã thay đổi. Hãy bấm Làm mới.');
+        }
+      } finally {polling=false;}
     },3000);
     await refresh();
   });

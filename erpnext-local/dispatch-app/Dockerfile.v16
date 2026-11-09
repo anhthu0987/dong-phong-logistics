@@ -1,5 +1,8 @@
 FROM logistics-erpnext:v16
 COPY --chown=frappe:frappe . /home/frappe/frappe-bench/apps/dp_dispatch
+USER root
+RUN python /home/frappe/frappe-bench/apps/dp_dispatch/fix_nginx_origin.py
+USER frappe
 RUN /home/frappe/frappe-bench/env/bin/pip install --no-deps setuptools && \
     /home/frappe/frappe-bench/env/bin/pip install --no-deps --no-build-isolation -e /home/frappe/frappe-bench/apps/dp_dispatch && \
     ln -s /home/frappe/frappe-bench/apps/dp_dispatch/dp_dispatch/public /home/frappe/frappe-bench/assets/dp_dispatch

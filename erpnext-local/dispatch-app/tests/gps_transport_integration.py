@@ -11,6 +11,7 @@ from frappe.utils import now_datetime, add_to_date
 
 def run():
     from dp_dispatch import completion, tracking
+    from dp_dispatch.dp_tracking_and_pod import realtime
     from dp_dispatch.dp_dispatch.api import gps, gps_redis
     acceptance = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'acceptance_transport.py'))
     checks = []
@@ -62,15 +63,32 @@ def run():
                 frappe.db.set_value('Delivery Trip',foreign.name,'status','In Transit')
                 deny('Ambiguous active vehicle trips rejected',lambda:send(None,'-ambiguous'))
                 checks.append('Vehicle-only GPS binds current trip but not pre-trip delayed positions')
+                manager=frappe.get_doc(dict(doctype='User',email=tag+'@example.invalid',first_name='Điều phối vận tải',enabled=1,send_welcome_email=0,user_type='System User',roles=[{'role':'Fleet Manager'}])).insert()
+                assert realtime.can_watch(doc,manager.name)
+                assert not frappe.has_permission('Delivery Trip',doc=doc,user=actor,ptype='write')
+                checks.append('Frappe v16 manager read and driver write restrictions enforced')
                 frappe.set_user(actor)
-                send(trip,'-a')
+                realtime.watch_trip(trip)
+                deny('Foreign trip realtime subscription denied',lambda:realtime.watch_trip(foreign.name))
+                with patch.object(frappe,'publish_realtime') as publish:
+                    send(trip,'-a')
+                    assert publish.call_count == 1
+                    assert publish.call_args.kwargs == {'user':actor,'after_commit':True}
+                    assert publish.call_args.args[0] == 'dp_gps_position'
+                    assert publish.call_args.args[1]['delivery_trip'] == trip
+                checks.append('Realtime position targets only authenticated current trip watcher')
                 same=dict(frappe.local.form_dict)
-                assert gps.log_location()['status']=='ignored'
+                with patch.object(frappe,'publish_realtime') as publish:
+                    assert gps.log_location()['status']=='ignored'
+                    publish.assert_not_called()
                 frappe.local.form_dict.recorded_at=str(add_to_date(now_datetime(),minutes=-1))
                 deny('Conflicting event id cannot change timestamp',gps.log_location)
                 deny('Unknown GPS source rejected',lambda:(frappe.local.form_dict.update(source_type='Invalid'),gps.log_location()))
                 checks.append('GPS ingest and duplicate idempotency')
-                send(trip,'-older',minute=-5,lat=10.7)
+                with patch.object(frappe,'publish_realtime') as publish:
+                    send(trip,'-older',minute=-5,lat=10.7)
+                    publish.assert_not_called()
+                checks.append('Duplicate and delayed points do not push a stale position')
                 assert gps_redis.latest_for_trip(trip,doc.vehicle)['latitude']==10.8
                 deny('Driver cannot send GPS to another trip',lambda:send(foreign.name,'-bad'))
                 deny('Driver cannot send GPS to draft trip',lambda:send(draft.name,'-draft'))
@@ -117,8 +135,21 @@ def run():
                 assert frappe.db.get_value('Vehicle',doc.vehicle,'custom_last_lat')==11.1
                 assert gps_redis.latest_for_trip(trip,doc.vehicle)['latitude']==10.8
                 checks.append('Delayed GPS cannot rewind persisted vehicle position')
+                # An old socket/user room must not keep access after reassignment.
+                with patch.object(realtime,'can_watch',return_value=False), patch.object(frappe,'publish_realtime') as publish:
+                    send(trip,'-revoked',minute=1)
+                    publish.assert_not_called()
+                assert not gps_redis._r().zscore(key('watch:'+trip),actor)
+                frappe.set_user(actor)
+                realtime.watch_trip(trip)
+                gps_redis._r().zadd(key('watch:'+trip),{actor:0})
+                with patch.object(frappe,'publish_realtime') as publish:
+                    send(trip,'-expired',minute=2)
+                    publish.assert_not_called()
+                checks.append('Revoked and expired watches receive no GPS push')
                 frappe.set_user('Guest')
                 deny('Guest tracking denied',lambda:tracking.list_trips())
+                deny('Guest realtime subscription denied',lambda:realtime.watch_trip(trip))
                 deny('Guest live positions denied',lambda:gps_redis.get_live_positions())
         finally:
             frappe.set_user(actor)

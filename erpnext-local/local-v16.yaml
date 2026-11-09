@@ -5,6 +5,14 @@ services:
     image: logistics-erpnext:dispatch-v16
   websocket:
     image: logistics-erpnext:dispatch-v16
+    # Authenticate sockets via Docker DNS, never browser localhost inside this container.
+    command:
+      - bash
+      - -ec
+      - >-
+        bench set-config -g webserver_host http://backend;
+        bench set-config -gp webserver_port 8000;
+        exec node /home/frappe/frappe-bench/apps/frappe/socketio.js
   queue-short:
     image: logistics-erpnext:dispatch-v16
   queue-long:

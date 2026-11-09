@@ -2,11 +2,11 @@ function dp_load_confirmation_stops(frm) {
 	if (!frm.is_new() || !frm.doc.delivery_trip || frm.doc.delivery_stop || frm.__dp_loading_stops) return;
 	frm.__dp_loading_stops = true;
 	const trip = frm.doc.delivery_trip;
-	frappe.call({
+	Promise.resolve(frappe.call({
 		method: "dp_dispatch.delivery_confirmation.get_trip_stops",
 		args: { delivery_trip: trip },
-	}).then(({ message }) => {
-		if (frm.doc.delivery_trip !== trip) return;
+	})).then(({ message }) => {
+		if (frm.doc.delivery_trip !== trip || frm.doc.delivery_stop) return;
 		const stops = message || [];
 		if (stops.length === 1) {
 			frm.set_value("delivery_stop", stops[0].value);
@@ -28,12 +28,17 @@ frappe.ui.form.on("Delivery Confirmation", {
 	},
 	refresh(frm) {
 		dp_load_confirmation_stops(frm);
+		// Read-only route defaults do not always emit field events in Frappe.
+		if (frm.is_new() && frm.doc.delivery_stop && frm.__dp_loaded_stop !== frm.doc.delivery_stop) {
+			frm.trigger("delivery_stop");
+		}
 		dp_confirmation_operation(frm);
 	},
 	setup(frm) {
 	},
 	delivery_trip(frm) {
 		const previousTrip = frm.__dp_last_trip || "";
+		if (previousTrip === (frm.doc.delivery_trip || "")) return;
 		frm.__dp_last_trip = frm.doc.delivery_trip || "";
 		// Frappe may apply route_options after onload. The first trip value is
 		// initialization; do not clear a stop passed by the Delivery Trip action.
@@ -47,14 +52,18 @@ frappe.ui.form.on("Delivery Confirmation", {
 		dp_load_confirmation_stops(frm);
 	},
 	delivery_stop(frm) {
+		if (!frm.doc.delivery_stop) return;
+		const stop = frm.doc.delivery_stop;
+		if (frm.__dp_loading_details === stop) return;
+		frm.__dp_loading_details = stop;
 		frm.set_value("delivery_order", "");
 		frm.set_value("delivery_note", "");
-		if (!frm.doc.delivery_stop) return;
-		frappe.call({
+		return Promise.resolve(frappe.call({
 			method: "dp_dispatch.delivery_confirmation.get_stop_details",
 			args: { delivery_trip: frm.doc.delivery_trip, delivery_stop: frm.doc.delivery_stop },
-		}).then(({ message }) => {
-			if (!message) return;
+		})).then(({ message }) => {
+			if (!message || frm.doc.delivery_stop !== stop) return;
+			frm.__dp_loaded_stop = stop;
 			frm.set_value("delivery_order", message.delivery_order || "");
 			frm.set_value("operation", message.operation || "Delivery");
 			dp_confirmation_operation(frm);
@@ -70,6 +79,8 @@ frappe.ui.form.on("Delivery Confirmation", {
 				});
 			}
 			frm.refresh_field("items");
+		}).finally(() => {
+			if (frm.__dp_loading_details === stop) frm.__dp_loading_details = null;
 		});
 	},
 });

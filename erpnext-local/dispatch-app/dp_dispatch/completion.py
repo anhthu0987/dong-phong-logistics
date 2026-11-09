@@ -25,12 +25,14 @@ def save_action(doc, status_after_save=None):
 	previous = frappe.flags.get("dp_trip_action")
 	frappe.flags.dp_trip_action = doc.name
 	try:
-		if status_after_save:
-			doc.status = frappe.db.get_value("Delivery Trip", doc.name, "status")
+		current_status = frappe.db.get_value("Delivery Trip", doc.name, "status")
+		target_status = status_after_save or current_status
+		doc.status = current_status
 		doc.save(ignore_permissions=True)
-		if status_after_save:
-			frappe.db.set_value("Delivery Trip", doc.name, "status", status_after_save, update_modified=True)
-			doc.status = status_after_save
+		# ERPNext recalculates status from visited stops during save. Our
+		# approval workflow must retain In Transit until an explicit decision.
+		frappe.db.set_value("Delivery Trip", doc.name, "status", target_status, update_modified=True)
+		doc.status = target_status
 	finally:
 		frappe.flags.dp_trip_action = previous
 
@@ -107,7 +109,7 @@ def start_trip(trip):
 	doc = lock_trip(trip)
 	ensure_assigned(doc)
 	doc.check_permission("read")
-	if doc.docstatus != 1 or doc.status != "Scheduled" or doc.get("custom_completed_at"):
+	if doc.docstatus != 1 or doc.status != "Scheduled" or doc.get("custom_started_at") or doc.get("custom_completed_at"):
 		frappe.throw("Chỉ bắt đầu chuyến đã Submit ở trạng thái Scheduled.")
 	if is_driver() and not doc.driver:
 		frappe.throw("Chuyến chưa được gán tài xế.")

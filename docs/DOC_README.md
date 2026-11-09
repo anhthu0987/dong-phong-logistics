@@ -141,8 +141,8 @@ Các controller/hooks cũng thực hiện validation trực tiếp khi lưu/Subm
 
 ## 9. Giới hạn và dữ liệu demo
 
-- Đã có API nhận GPS, bộ đệm Redis, lịch sử theo chuyến và bản đồ cập nhật bằng polling 3 giây. Nguồn simulator là dữ liệu mô phỏng; chưa xác nhận kết nối thiết bị GPS thật, chưa có TCP Listener hay xác thực thiết bị phần cứng. Xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
-- Chưa có tối ưu tuyến AI/OR, Socket.IO cho vị trí GPS, gửi email/Zalo bắt buộc hay tích hợp hạch toán/Payment Entry. Đường nối điểm trên bản đồ chỉ biểu diễn thứ tự, chưa phải tuyến đường được Maps API tính.
+- Đã có API nhận GPS, bộ đệm Redis, lịch sử theo chuyến và bản đồ cập nhật vị trí bằng Socket.IO, polling 3 giây dự phòng. Nguồn simulator là dữ liệu mô phỏng; chưa xác nhận kết nối thiết bị GPS thật, chưa có TCP Listener hay xác thực thiết bị phần cứng. Xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
+- Chưa có tối ưu tuyến AI/OR, gửi email/Zalo bắt buộc hay tích hợp hạch toán/Payment Entry. Đường nối điểm trên bản đồ chỉ biểu diễn thứ tự, chưa phải tuyến đường được Maps API tính.
 - Lịch bảo dưỡng tương lai chưa được so sánh trực tiếp với khoảng thời gian chuyến; bộ điều phối dựa trên tình trạng kỹ thuật xe hiện thời.
 - Một stop chỉ hỗ trợ một xác nhận đã Submit; giao nhiều đợt cần giữ bản xác nhận Draft cho tới khi hoàn tất.
 - Chi phí “Emergency Repair” ghi nhận chi phí/chứng từ; không tự tạo kế hoạch hay xác nhận bảo dưỡng.

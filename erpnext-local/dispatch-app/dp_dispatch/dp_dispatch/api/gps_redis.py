@@ -75,6 +75,15 @@ def enqueue(point):
         sig, point['recorded_at'], LATEST_TTL, EVENT_TTL)
     if result == 'conflict':
         frappe.throw('source_event_id đã được dùng với dữ liệu khác.', frappe.DuplicateEntryError)
+    if result == 'queued' and point.get('delivery_trip'):
+        latest = latest_for_trip(point['delivery_trip'], point['vehicle'])
+        if latest and latest.get('source_event_id') == point['source_event_id']:
+            from dp_dispatch.dp_tracking_and_pod.realtime import publish_position
+            # Persistence remains available if the optional push path fails.
+            try:
+                publish_position(point)
+            except Exception:
+                frappe.log_error(title='GPS realtime publish failed')
     return result
 
 

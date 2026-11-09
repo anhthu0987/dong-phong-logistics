@@ -43,7 +43,9 @@ chia module. Các liên kết tới DocType chuẩn là điểm truy cập.
 - GPS Log thuộc DP Tracking and POD, nhưng hai Page GPS vẫn thuộc DP Dispatch.
   Nguồn JavaScript duy nhất là `dp_dispatch/dp_dispatch/page/<page>/<page>.js`
   tính từ thư mục app. Frappe đọc trực tiếp theo module của Page; không đăng ký
-  thêm `page_js` cho hai trang này. API GPS giữ đường dẫn tương thích cũ.
+  thêm `page_js` cho hai trang này. Mỗi trang phải có JSON metadata đi kèm để
+  migration không coi là Page mồ côi và thay mã JS bằng trang mẫu. API GPS giữ
+  đường dẫn tương thích cũ.
 - Đây là một app triển khai chung, không phải sáu app hay sáu dịch vụ độc lập.
 
 ## Kiểm chứng local
@@ -60,3 +62,13 @@ Chạy kiểm tra từ PowerShell tại thư mục repo:
 ```powershell
 Get-Content erpnext-local/dispatch-app/verify_modules.py -Raw | docker exec -i -w /home/frappe/frappe-bench/sites logistics-erpnext-backend-1 /home/frappe/frappe-bench/env/bin/python -
 ```
+
+
+### Nhánh realtime GPS (bước 4)
+
+`DP Tracking and POD` sở hữu `dp_tracking_and_pod/realtime.py`: quyền theo dõi,
+lease ngắn hạn và sự kiện vị trí. API nhận GPS/Redis và Page vẫn giữ đường dẫn cũ
+để tương thích; không đổi module DocType chuẩn. Service `websocket` là lớp hạ tầng
+Socket.IO dùng chung, còn quyền và ý nghĩa sự kiện GPS thuộc Tracking/POD.
+Xem [GPS_INTEGRATION](GPS_INTEGRATION.md) để phân biệt phần đã làm với TCP Listener,
+AI/OR-Tools và phát hiện lệch tuyến ở bước sau.

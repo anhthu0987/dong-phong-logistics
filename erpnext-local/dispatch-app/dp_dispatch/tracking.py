@@ -85,10 +85,11 @@ def gps_log_query(user=None):
     return '`tabGPS Log`.`delivery_trip` in (select name from `tabDelivery Trip` where ' + trip_query(user) + ')'
 
 
-def has_gps_log_permission(doc, user=None, permission_type=None):
+def has_gps_log_permission(doc, user=None, permission_type=None, ptype=None):
+    permission_type = permission_type or ptype
     user = user or frappe.session.user
     if user == 'Administrator' or set(frappe.get_roles(user)) & {'System Manager', 'Fleet Manager'}:
-        return None
+        return True
     if not is_driver(user) or permission_type not in ('read', 'select', None) or not doc.delivery_trip:
         return False
     from dp_dispatch.permissions import has_trip_permission

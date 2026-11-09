@@ -177,7 +177,8 @@ def run():
     delivery=confirm(trip.delivery_stops[1]); trip.reload()
     assert trip.custom_onboard_weight_kg==0
     completion.request_completion(trip.name)
-    trip.reload(); assert trip.status!='Completed' and trip.custom_completion_status=='Requested'
+    trip.reload(); assert trip.status=='In Transit' and trip.custom_completion_status=='Requested'
+    reject('Chặn bắt đầu lại chuyến đang chờ duyệt', lambda: completion.start_trip(trip.name), 'Chỉ bắt đầu')
     frappe.set_user('Administrator')
     reject('Không hủy phiếu lấy khi đã có phiếu giao',lambda:frappe.get_doc('Delivery Confirmation',pickup.name).cancel(),'các điểm sau')
     completion.approve_completion(trip.name)
