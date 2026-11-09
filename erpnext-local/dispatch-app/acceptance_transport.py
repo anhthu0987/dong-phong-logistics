@@ -11,7 +11,7 @@ import frappe
 from frappe.utils import now_datetime, add_to_date, today
 
 
-def run():
+def _run_transport(finalize=True, payment_policy='Collect on Delivery', collection_fraction=1):
     from dp_dispatch.api import make_delivery_order_from_quotation
     from dp_dispatch import completion, transport
     from dp_dispatch.delivery_confirmation import get_stop_details
@@ -87,6 +87,9 @@ def run():
                       instructions='Hàng carton đóng kiện, giữ khô; kiểm đếm tại điểm lấy và điểm giao.'))
         for row in d.items:
             row.weight_kg = weight
+        d.custom_payment_policy = payment_policy
+        if payment_policy == 'Credit':
+            d.custom_payment_due_date = add_to_date(now, days=30).date()
         d.insert()
         d.submit()
         d.reload()
@@ -153,7 +156,7 @@ def run():
         c=frappe.get_doc(dict(doctype='Delivery Confirmation',delivery_trip=trip.name,delivery_stop=stop.name,
                 received_at=now_datetime(),recipient=d.sender_name if stop.custom_stop_type=='Pickup' else d.recipient_name,
                 notes='Đã kiểm đếm số kiện và đối chiếu tình trạng bao bì.',
-                shipping_fee_collected=details['shipping_fee'],fee_collection_method='Cash' if details['shipping_fee'] else None))
+                shipping_fee_collected=details['shipping_fee'] * collection_fraction,fee_collection_method='Cash' if details['shipping_fee'] else None))
         for source in details['items']:
             row=dict(source,pending_qty=0,picked_up_qty=0,delivered_qty=0,returned_qty=0,returned_to_sender_qty=0)
             if stop.custom_stop_type=='Pickup': row['picked_up_qty']=source['allocated_qty']
@@ -184,10 +187,11 @@ def run():
     completion.approve_completion(trip.name)
     trip.reload(); d.reload(); q.reload()
     assert trip.status=='Completed' and trip.custom_completion_status=='Approved'
-    assert d.delivery_status=='Delivered' and d.fee_status=='Paid'
+    assert d.delivery_status=='Delivered'
+    assert d.fee_status == ('Paid' if collection_fraction == 1 else ('Partially Paid' if collection_fraction else 'Unpaid'))
     assert q.docstatus==d.docstatus==pickup.docstatus==delivery.docstatus==trip.docstatus==1
     reject('Chặn hủy phiếu sau khi duyệt hoàn tất',lambda:frappe.get_doc('Delivery Confirmation',delivery.name).cancel(),'hoàn tất')
-    checks.append('Tài xế lấy 40 kiện/240 kg → giao đủ → thu 600.000 VND → yêu cầu → quản trị duyệt Completed')
+    checks.append(f'Tài xế lấy 40 kiện/240 kg → giao đủ → thu {600000 * collection_fraction:g} VND → yêu cầu → quản trị duyệt Completed')
     # Exercise a return-to-sender lifecycle separately, without retaining extra orders.
     frappe.db.savepoint('return_case')
     _, return_order=order()
@@ -214,6 +218,9 @@ def run():
                 customer=customer.name,vehicle=vehicle.name,driver=driver_name,weight_kg=240,fee=d.shipping_fee,
                 status=trip.status,approval=trip.custom_completion_status,storage='MariaDB / Frappe DocTypes',
                 fixture_data='Synthetic business scenario; no real customer transaction or accounting posting.')
+    if not finalize:
+        report['retained'] = False
+        return report
     if os.environ.get('DP_ACCEPTANCE_COMMIT')=='1':
         frappe.db.commit()
         report['retained']=True
@@ -221,6 +228,14 @@ def run():
         frappe.db.rollback()
         report['retained']=False
     return report
+
+
+def run(finalize=True, payment_policy='Collect on Delivery', collection_fraction=1):
+    # Test-only historical fixture setup. Production calls cannot enable this.
+    # New plan approval/release is covered by tests/planning_integration.py.
+    from unittest.mock import patch
+    with patch('dp_dispatch.planning.require_plan'):
+        return _run_transport(finalize, payment_policy, collection_fraction)
 
 
 if __name__=='__main__':

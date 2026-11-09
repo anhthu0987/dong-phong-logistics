@@ -82,4 +82,25 @@ scheduler_events = {
     }
 }
 
- 
+
+# Extend hooks without replacing operational validation.
+app_include_js = ['/assets/dp_dispatch/js/accounting.js']
+for _dt, _validator in {
+    'Sales Invoice': 'validate_invoice',
+    'Payment Entry': 'validate_payment',
+    'Journal Entry': 'validate_expense_entry',
+}.items():
+    doc_events.setdefault(_dt, {})['validate'] = 'dp_dispatch.accounting.' + _validator
+    doc_events[_dt]['before_submit'] = 'dp_dispatch.accounting.' + _validator
+
+for _dt in ('Delivery Order', 'Delivery Trip', 'Delivery Confirmation', 'Vehicle Log'):
+    _events = doc_events.setdefault(_dt, {})
+    _old = _events.get('before_cancel')
+    _events['before_cancel'] = ([_old] if _old else []) + ['dp_dispatch.accounting.guard_source_cancel']
+
+doc_events['Expense Claim'] = {'validate': 'dp_dispatch.accounting.validate_expense_claim',
+                               'before_submit': 'dp_dispatch.accounting.validate_expense_claim'}
+
+doctype_js['Transport Plan'] = 'public/js/transport_plan.js'
+doc_events['Transport Plan'] = {'validate': 'dp_dispatch.planning.validate_plan'}
+doc_events['Delivery Trip']['before_submit'] = ['dp_dispatch.planning.require_plan', 'dp_dispatch.validation.validate_trip']

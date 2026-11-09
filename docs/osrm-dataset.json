@@ -1,0 +1,11 @@
+{
+  "source": "https://download.geofabrik.de/asia/vietnam-latest.osm.pbf",
+  "region": "Vietnam",
+  "download_date": "2026-11-09",
+  "bytes": 332433509,
+  "sha256": "173c9719a259152065428d5291de8f516e9f742876da299007759037a47e4163",
+  "attribution": "© OpenStreetMap contributors / Geofabrik",
+  "license": "ODbL",
+  "profile": "OSRM car.lua",
+  "live_traffic": false
+}

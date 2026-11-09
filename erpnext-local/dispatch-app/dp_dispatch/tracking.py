@@ -71,7 +71,7 @@ def get_trip_tracking(delivery_trip):
     return {'trip': {key: doc.get(key) for key in (
         'name', 'vehicle', 'driver', 'driver_name', 'status', 'docstatus',
         'custom_completion_status', 'custom_started_at', 'custom_completed_at',
-        'custom_onboard_quantity', 'custom_onboard_weight_kg', 'custom_origin_lat', 'custom_origin_lng')},
+        'custom_onboard_quantity', 'custom_onboard_weight_kg', 'custom_origin_lat', 'custom_origin_lng', 'custom_transport_plan', 'custom_planned_route')},
         'stops': stops, 'position': latest_for_trip(doc.name, doc.vehicle)}
 
 

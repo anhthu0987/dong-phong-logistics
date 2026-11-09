@@ -3,14 +3,14 @@
 App cài đặt vẫn là `dp_dispatch`. Các module tự xây được tách theo trách nhiệm;
 DocType chuẩn giữ nguyên module của ERPNext/HRMS.
 
-| Khối nghiệp vụ | Module kỹ thuật | Dữ liệu |
+| Khối nghiệp vụ | Module kỹ thuật | Dữ liệu & Tính năng |
 |---|---|---|
 | Khách hàng và báo giá | Selling/CRM chuẩn; Workspace DP Sales | Customer, Quotation, Sales Order, Item, Item Price |
 | Đơn vận chuyển | DP Transport Orders | Delivery Order, Delivery Order Item |
-| Xe, tài xế và vận hành | DP Fleet Operations + Fleet chuẩn | Fleet Maintenance Plan/Record; liên kết Vehicle, Driver, Employee, Vehicle Log |
-| Điều phối và quản lý chuyến | DP Transport Planning + Stock chuẩn | Mở rộng Delivery Trip/Delivery Stop; chưa có chứng từ kế hoạch tối ưu |
-| Theo dõi và giao nhận | DP Tracking and POD | Delivery Confirmation/Item; GPS Log cài qua gps_setup; GPS Device chỉ hiển thị nếu site có DocType này |
-| Hóa đơn, công nợ và báo cáo | Accounts chuẩn; Workspace DP Accounts | Sales Invoice, Purchase Invoice, Payment Entry |
+| Xe, tài xế và vận hành | DP Fleet Operations + Fleet chuẩn | Fleet Maintenance Plan/Record; liên kết Vehicle, Driver, Employee, Vehicle Log (chi phí chuyến) |
+| Điều phối và quản lý chuyến | DP Transport Planning + Stock chuẩn | Mở rộng Delivery Trip/Delivery Stop; Transport Plan (tối ưu lộ trình VRP qua OSRM & Google OR-Tools) |
+| Theo dõi và giao nhận | DP Tracking and POD | Delivery Confirmation/Item (ePOD); GPS Log, Fleet Map realtime qua Socket.IO |
+| Hóa đơn, công nợ và báo cáo | Accounts chuẩn; Workspace DP Accounts | Sales Invoice, Payment Entry, Journal Entry, Báo cáo đối soát vận tải Transport Reconciliation |
 
 `DP Dispatch` được giữ làm module đầu mối và Workspace tổng quan để các liên kết
 cũ vẫn mở được. Nó không còn sở hữu sáu DocType nghiệp vụ tự xây.
@@ -28,10 +28,11 @@ Hai Workspace DP Sales/DP Accounts không phải hai module kế toán/bán hàn
   cùng phiên bản trước khi kiểm tra. Không chỉ chép code vào một container.
 - Không cài thêm hoặc gỡ `dp_operations` trong thay đổi này.
 
-Việc tách module không tự bổ sung tính năng nghiệp vụ. GPS hiện đã được nối
-với chuyến qua phần triển khai riêng, xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
-OR-Tools, Sales Order mapping và tích hợp kế toán chưa được bổ sung bởi thay đổi
-chia module. Các liên kết tới DocType chuẩn là điểm truy cập.
+## Các phân hệ nâng cao đã tích hợp hoàn chỉnh
+
+1. **GPS Realtime & Bản đồ theo chuyến**: Đã kết nối Socket.IO, cập nhật tọa độ tức thời và lịch sử di chuyển theo chuyến, xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
+2. **Kế hoạch tuyến đường thông minh (OSRM + OR-Tools)**: Đã tích hợp DocType `Transport Plan`, dịch vụ FastAPI `optimizer` và engine OSRM (OpenStreetMap) nội bộ để giải bài toán VRP đa xe, ràng buộc tải trọng, thời gian và tọa độ, xem [PLANNING_OSRM](PLANNING_OSRM.md).
+3. **Tích hợp Kế toán vận tải tự động**: Đã kết nối vòng đời hoàn tất chuyến với `Sales Invoice`, thu cước `Payment Entry`, chi phí `Journal Entry` và báo cáo đối soát `Transport Reconciliation`, xem [ACCOUNTING_INTEGRATION](ACCOUNTING_INTEGRATION.md).
 
 ## Ranh giới mã nguồn hiện tại
 

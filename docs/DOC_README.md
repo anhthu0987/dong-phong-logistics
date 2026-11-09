@@ -25,19 +25,26 @@ dong-phong-logistics/
 │   └── THANH_VIEN_2.md               # Tài liệu thao tác nghiệp vụ
 └── erpnext-local/
     ├── apps-v16.json                 # Danh sách app build vào image v16
-    ├── local-v16.yaml                # Docker Compose override v16
+    ├── local-v16.yaml                # Docker Compose override v16 (kèm OSRM & Optimizer)
+    ├── optimizer/                    # Dịch vụ FastAPI giải bài toán VRP với Google OR-Tools
+    ├── Prepare-OSRM.ps1              # Tải và xử lý dữ liệu bản đồ OpenStreetMap cho OSRM
     ├── Quan-ly-v16.ps1               # Lệnh quản lý stack v16
     ├── database/                     # Bộ cài schema/dữ liệu mẫu v15 cũ
     └── dispatch-app/
         ├── dp_dispatch/
-        │   ├── dp_transport_orders/doctype/ # Đơn vận chuyển
-        │   ├── dp_fleet_operations/doctype/ # Bảo trì
-        │   ├── dp_tracking_and_pod/doctype/ # Giao nhận, ePOD
-        │   ├── dp_transport_planning/ # Điều phối, kế hoạch
+        │   ├── dp_transport_orders/doctype/ # Đơn vận chuyển (Delivery Order)
+        │   ├── dp_fleet_operations/doctype/ # Đội xe & Bảo trì (Fleet Maintenance)
+        │   ├── dp_tracking_and_pod/doctype/ # Giao nhận, ePOD, GPS Log
+        │   ├── dp_transport_planning/doctype/ # Kế hoạch vận chuyển (Transport Plan)
         │   ├── dp_dispatch/page/    # Nguồn JS duy nhất cho fleet-map, driver-gps
         │   ├── dp_dispatch/api/     # Nhận GPS và bộ đệm Redis
+        │   ├── dp_dispatch/report/  # Báo cáo đối soát vận tải (Transport Reconciliation)
         │   ├── tracking.py          # Truy vấn theo chuyến và quyền GPS Log
         │   ├── gps_setup.py         # Schema, quyền và Page GPS
+        │   ├── planning.py          # Lập lộ trình tối ưu qua OSRM & OR-Tools
+        │   ├── planning_setup.py    # Schema và Workspace kế hoạch
+        │   ├── accounting.py        # Tích hợp hóa đơn cước và thanh toán
+        │   ├── accounting_rules.py  # Ràng buộc nghiệp vụ kế toán vận tải
         │   ├── module_navigation.py # Sáu Workspace nghiệp vụ
         │   ├── public/js/            # Client Scripts (Desk)
         │   ├── setup.py              # Custom Fields, quyền, workspace, scripts
@@ -79,6 +86,7 @@ Schema runtime do Frappe quản lý, không tự tạo bảng bằng câu lệnh
 ### 4.2 DocType mới của app
 
 - **Delivery Order** + **Delivery Order Item:** khách hàng, người gửi/nhận, địa chỉ, kiện hàng, số lượng/UOM, cân nặng, cước và trạng thái giao/cước.
+- **Transport Plan** + **Transport Plan Order** + **Transport Plan Vehicle:** kế hoạch điều phối lộ trình đa xe giải bằng Google OR-Tools và OSRM.
 - **Delivery Confirmation** + **Delivery Confirmation Item:** chuyến, điểm dừng, người nhận, thời gian, chứng từ và lượng phân giao/thực nhận/trả lại/còn chờ.
 - **GPS Log:** tọa độ, thời điểm, xe, chuyến và mã bản tin; được tạo qua `gps_setup.py`, thuộc DP Tracking and POD.
 - **Fleet Maintenance Plan:** xe, hạng mục, chu kỳ km/ngày, mốc bảo dưỡng và trạng thái giữ xe.
@@ -87,22 +95,27 @@ Schema runtime do Frappe quản lý, không tự tạo bảng bằng câu lệnh
 Các quan hệ chính:
 
 ```text
-Customer → Quotation → Delivery Order → Delivery Trip → Delivery Stop
-                         └─ Delivery Order Item ↔ Quotation Item
-Delivery Stop → Delivery Confirmation → Delivery Confirmation Item
-Delivery Trip → Vehicle Log (chi phí trong chuyến) → Admin review/submit
-Vehicle → Fleet Maintenance Plan → Fleet Maintenance Record → nghiệm thu
+Customer → Quotation → Delivery Order → Transport Plan (OSRM + OR-Tools)
+                         ↓                      ↓
+                   Delivery Stop ←─────── Delivery Trip
+                         ↓                      ↓
+              Delivery Confirmation       Vehicle Log → Journal Entry
+                         ↓                      ↓
+                   Sales Invoice ←──────── Hoàn tất chuyến
+                         ↓
+                   Payment Entry
 ```
 
 ## 5. Luồng nghiệp vụ hiện có
 
 1. **Báo giá:** nhân viên tạo Quotation cho Customer, thêm Item/Quantity/Rate, Submit. Sau khi khách xác nhận thật, đánh dấu `custom_customer_accepted`; thao tác tạo Delivery Order kiểm tra cả trạng thái Submit và cờ đồng ý.
 2. **Tạo đơn giao:** tạo Delivery Order từ Quotation qua API mapping; item được liên kết với Quotation Item. Submit đơn để tạo địa chỉ giao dùng cho Delivery Stop.
-3. **Điều phối:** điều phối viên gắn đơn vào Delivery Stop, chọn xe/tài xế, thời gian và Submit Delivery Trip. Backend tính khối lượng/tổng lượng theo đơn, kiểm tra trạng thái/tải trọng, giấy phép, số km và lịch trùng xe/tài xế.
+3. **Lập kế hoạch & Điều phối:** điều phối viên tạo Transport Plan, chọn các đơn giao và đội xe tham gia; hệ thống tự động gọi engine OSRM và OR-Tools để tối ưu hóa lộ trình xe (VRP) theo tải trọng, vị trí và thời gian. Khi duyệt Transport Plan, hệ thống tự động sinh và Submit các Delivery Trip theo lộ trình tối ưu.
 4. **Tài xế thực hiện:** tài xế chỉ đọc chuyến/đơn được giao, bắt đầu chuyến; tại điểm giao lập Delivery Confirmation và nhập kết quả hàng, người nhận, chứng từ và cước thu (nếu áp dụng).
 5. **Kết thúc chuyến:** tài xế gửi yêu cầu. Admin/System Manager duyệt hoặc từ chối; việc duyệt kiểm tra xác nhận các điểm, số hàng còn chờ và điều kiện cước theo rule backend.
 6. **Chi phí chuyến:** tài xế tạo Vehicle Log cho chuyến đang In Transit, nhập nhiên liệu/phí đường/phí đỗ/sửa chữa khẩn cấp/khác, chứng từ và số km. Gửi Admin/Fleet Manager duyệt. Duyệt sẽ Submit Vehicle Log; trả bổ sung yêu cầu ghi lý do và cho tài xế sửa/gửi lại; tài xế không thể tự duyệt.
 7. **Bảo dưỡng:** công việc bảo dưỡng thực tế theo dõi riêng bằng Fleet Maintenance Plan/Record. Chỉ Record đã nghiệm thu và Submit mới cập nhật mốc bảo dưỡng; xe chỉ trở lại Available khi không còn kế hoạch khác đang giữ xe.
+8. **Kế toán & Đối soát cước:** Chuyến hoàn tất được xuất hóa đơn cước (Sales Invoice) từ đơn vận chuyển/báo giá; tiền cước tài xế thu (COD) hoặc công nợ (Credit) được hạch toán qua Payment Entry; chi phí duyệt qua Journal Entry; đối soát toàn diện qua báo cáo Transport Reconciliation.
 
 ## 6. Validation quan trọng
 
@@ -130,6 +143,11 @@ Các method dùng bằng `frappe.call` hoặc `/api/method/<dotted.path>`. Endpo
 | `dp_dispatch.maintenance.send_vehicle_log_for_review` | Tài xế gửi Vehicle Log để duyệt. |
 | `dp_dispatch.maintenance.review_vehicle_log` | Admin/Fleet Manager duyệt, trả sửa hoặc từ chối; ghi lý do cho trả/từ chối. |
 | `dp_dispatch.permissions.assign_driver_role` | System Manager kiểm tra liên kết Driver–Employee–User và gán role DP Driver. |
+| `dp_dispatch.planning.request_optimization` | Kích hoạt tối ưu hóa lộ trình xe cho Transport Plan qua engine OSRM & OR-Tools. |
+| `dp_dispatch.planning.approve_transport_plan` | Duyệt kế hoạch vận chuyển, sinh và Submit các Delivery Trip tương ứng. |
+| `dp_dispatch.planning.reject_transport_plan` | Từ chối kế hoạch vận chuyển với lý do bắt buộc. |
+| `dp_dispatch.accounting.make_sales_invoice_for_trip` | Tạo hóa đơn bán hàng / cước vận chuyển (Sales Invoice) từ chuyến đã duyệt hoàn tất. |
+| `dp_dispatch.accounting.record_delivery_payment` | Hạch toán phiếu thu cước (Payment Entry) từ xác nhận giao hàng / cước tài xế thu. |
 
 Các controller/hooks cũng thực hiện validation trực tiếp khi lưu/Submit; không dựa riêng vào ẩn/hiện trường hoặc lọc dữ liệu client.
 
@@ -141,9 +159,10 @@ Các controller/hooks cũng thực hiện validation trực tiếp khi lưu/Subm
 
 ## 9. Giới hạn và dữ liệu demo
 
-- Đã có API nhận GPS, bộ đệm Redis, lịch sử theo chuyến và bản đồ cập nhật vị trí bằng Socket.IO, polling 3 giây dự phòng. Nguồn simulator là dữ liệu mô phỏng; chưa xác nhận kết nối thiết bị GPS thật, chưa có TCP Listener hay xác thực thiết bị phần cứng. Xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
-- Chưa có tối ưu tuyến AI/OR, gửi email/Zalo bắt buộc hay tích hợp hạch toán/Payment Entry. Đường nối điểm trên bản đồ chỉ biểu diễn thứ tự, chưa phải tuyến đường được Maps API tính.
+- Đã có API nhận GPS, bộ đệm Redis, lịch sử theo chuyến và bản đồ cập nhật vị trí bằng Socket.IO, polling 3 giây dự phòng. Nguồn simulator là dữ liệu mô phỏng; chưa xác nhận kết nối thiết bị GPS vật lý qua TCP Listener. Xem [GPS_INTEGRATION](GPS_INTEGRATION.md).
+- Đã hoàn thiện tính năng tối ưu tuyến bằng động cơ nội bộ OSRM (OpenStreetMap) và Google OR-Tools (không tốn chi phí Google Maps API key, đường đi thực tế theo GeoJSON). Xem [PLANNING_OSRM](PLANNING_OSRM.md).
+- Đã hoàn thiện tích hợp Kế toán vận tải tự động (Sales Invoice, Payment Entry, Journal Entry và báo cáo đối soát Transport Reconciliation). Xem [ACCOUNTING_INTEGRATION](ACCOUNTING_INTEGRATION.md).
 - Lịch bảo dưỡng tương lai chưa được so sánh trực tiếp với khoảng thời gian chuyến; bộ điều phối dựa trên tình trạng kỹ thuật xe hiện thời.
 - Một stop chỉ hỗ trợ một xác nhận đã Submit; giao nhiều đợt cần giữ bản xác nhận Draft cho tới khi hoàn tất.
 - Chi phí “Emergency Repair” ghi nhận chi phí/chứng từ; không tự tạo kế hoạch hay xác nhận bảo dưỡng.
-- Site v16 chưa được nạp bộ dữ liệu demo riêng đã xác nhận; mã bản ghi và tải trọng phải lấy từ site thật. Giá trị demo không phải thông số vận hành thực tế.
+- Site v16 đã có dữ liệu mẫu thực tế của Công ty Phân phối Đông Phong để demo nghiệp vụ và chấm điểm.

@@ -68,7 +68,8 @@ def validate_all_stops(trip):
 		if stop.get("custom_delivery_order") and (not enabled(trip) or stop.custom_stop_type == 'Delivery'):
 			order = frappe.get_doc("Delivery Order", stop.custom_delivery_order)
 			paid = sum(flt(frappe.db.get_value("Delivery Confirmation", name, "shipping_fee_collected")) for name in names)
-			if paid + 0.000001 < flt(order.shipping_fee):
+			from dp_dispatch.accounting_rules import collection_required
+			if collection_required(order) and paid + 0.000001 < flt(order.shipping_fee):
 				frappe.throw(f"Đơn {order.name} chưa thu đủ phí vận chuyển.")
 
 

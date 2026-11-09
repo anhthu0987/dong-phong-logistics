@@ -1,5 +1,6 @@
 """Pickup/delivery planning and actual cargo ledger, persisted in MariaDB via Frappe."""
 import math
+from dp_dispatch.accounting_rules import collection_status
 
 import frappe
 from frappe.utils import flt, get_datetime, add_to_date
@@ -64,6 +65,10 @@ def enabled(trip):
 
 
 def validate_order(doc, method=None):
+    if (doc.get('custom_payment_policy') or 'Collect on Delivery') not in ('Collect on Delivery', 'Credit'):
+        fail('Điều kiện thanh toán không hợp lệ.')
+    if doc.get('custom_payment_policy') == 'Credit' and not doc.get('custom_payment_due_date'):
+        fail('Đơn công nợ cần hạn thanh toán.')
     for prefix in ('pickup', 'delivery'):
         start, end = doc.get(prefix + '_window_start'), doc.get(prefix + '_window_end')
         if bool(start) != bool(end):
@@ -261,8 +266,12 @@ def validate_confirmation(doc, trip):
     fee = quantity(doc.get('shipping_fee_collected'))
     if kind != 'Delivery' and fee:
         fail('Cước chỉ thu tại điểm giao, không thu lặp tại điểm lấy/trả.')
-    if kind == 'Delivery' and (fee > doc.shipping_fee_due + EPS or (doc.docstatus == 1 and abs(fee - doc.shipping_fee_due) > EPS)):
-        fail('Điểm giao cần thu đúng cước của đơn trước khi Submit.')
+    if kind == 'Delivery':
+        from dp_dispatch.accounting_rules import check_collection, collection_required
+        try:
+            check_collection(doc.shipping_fee_due, fee, doc.docstatus == 1 and collection_required(order))
+        except ValueError as error:
+            fail(str(error))
     if fee and not doc.get('fee_collection_method'):
         fail('Chọn phương thức thu cước.')
 
@@ -291,7 +300,7 @@ def on_submit_confirmation(doc, trip):
     if kind == 'Delivery':
         frappe.db.set_value('Delivery Order', doc.delivery_order, {
             'delivery_status': state, 'fee_paid': doc.shipping_fee_collected,
-            'fee_status': 'Paid' if doc.shipping_fee_due else 'Not Required',
+            'fee_status': collection_status(doc.shipping_fee_due, doc.shipping_fee_collected),
         }, update_modified=False)
     elif kind == 'Pickup':
         frappe.db.set_value('Delivery Order', doc.delivery_order, 'delivery_status', 'In Transit', update_modified=False)

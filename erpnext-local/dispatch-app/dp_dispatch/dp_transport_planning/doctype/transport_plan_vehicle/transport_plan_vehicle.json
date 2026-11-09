@@ -1,0 +1,57 @@
+{
+  "doctype": "DocType",
+  "name": "Transport Plan Vehicle",
+  "module": "DP Transport Planning",
+  "engine": "InnoDB",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "vehicle",
+      "label": "Xe",
+      "fieldtype": "Link",
+      "options": "Vehicle",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "driver",
+      "label": "Tài xế",
+      "fieldtype": "Link",
+      "options": "Driver",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "origin_lat",
+      "label": "Vĩ độ xuất phát",
+      "fieldtype": "Float",
+      "precision": "9",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "origin_lng",
+      "label": "Kinh độ xuất phát",
+      "fieldtype": "Float",
+      "precision": "9",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "origin_confirmed",
+      "label": "Đã kiểm tra tọa độ xuất phát",
+      "fieldtype": "Check",
+      "default": 0,
+      "reqd": 1
+    }
+  ],
+  "field_order": [
+    "vehicle",
+    "driver",
+    "origin_lat",
+    "origin_lng",
+    "origin_confirmed"
+  ],
+  "permissions": [],
+  "istable": 1
+}

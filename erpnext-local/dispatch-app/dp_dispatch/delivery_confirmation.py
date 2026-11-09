@@ -196,7 +196,8 @@ def validate_confirmation(doc, method=None):
 		previous_paid = flt(order.fee_paid)
 		if previous_paid + fee - flt(order.shipping_fee) > 0.000001:
 			fail("DPOD_FEE_OVER", "Tổng phí đã thu vượt phí vận chuyển của đơn.")
-		if method == "before_submit" and previous_paid + fee + 0.000001 < flt(order.shipping_fee):
+		from dp_dispatch.accounting_rules import collection_required
+		if method == "before_submit" and collection_required(order) and previous_paid + fee + 0.000001 < flt(order.shipping_fee):
 			fail("DPOD_FEE_UNPAID", "Cần thu đủ phí vận chuyển của đơn trước khi Submit xác nhận giao hàng.")
 	if fee and not doc.get("fee_collection_method"):
 		fail("DPOD_FEE_METHOD", "Chọn phương thức khi có thu phí vận chuyển.")

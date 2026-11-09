@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "date": "2026-11-09",
+  "site": "logistics-v16.localhost",
+  "checks": [
+    "credit trip complete with partial collection",
+    "invoice receivable 600000",
+    "driver receipt 200000 leaves receivable 400000",
+    "duplicate creation returns existing document",
+    "direct receipt blocked until driver collection posted",
+    "receipt cancellation restores receivable",
+    "remaining payment clears receivable and cancellation restores 400000",
+    "approved expense 100000 posts to GL",
+    "expense cancellation reverses posted cost",
+    "report agrees with invoice and GL",
+    "invoice and receipt GL balanced",
+    "24 transport checks in credit scenario"
+  ],
+  "retained": false,
+  "verification": "Executed accounting_integration.py in running ERPNext v16 backend; exit code 0",
+  "ui": "Report, Workspace, asset HTTP 200 verified; interactive click-through not tested"
+}

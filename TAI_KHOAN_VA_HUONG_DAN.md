@@ -22,7 +22,7 @@
   - Frappe: `16.55.2`
   - ERPNext: `16.54.0`
   - HRMS: `16.53.1`
-  - App điều phối: `dp_dispatch` (với 4 phân hệ module nghiệp vụ mới)
+  - App điều phối: `dp_dispatch` (với 6 phân hệ module nghiệp vụ: DP Sales, DP Transport Orders, DP Transport Planning, DP Tracking and POD, DP Fleet Operations, DP Accounts)
 - **Công ty**: Công ty Phân phối Đông Phong (Tiền tệ: VND)
 
 ---
@@ -40,6 +40,7 @@
 
 - **Bàn làm việc DP Dispatch**: [https://admin-pc.taild66954.ts.net/app/dp-dispatch](https://admin-pc.taild66954.ts.net/app/dp-dispatch)
 - **Đơn vận chuyển (Delivery Order)**: [https://admin-pc.taild66954.ts.net/app/delivery-order](https://admin-pc.taild66954.ts.net/app/delivery-order)
+- **Kế hoạch vận chuyển tối ưu (Transport Plan)**: [https://admin-pc.taild66954.ts.net/app/transport-plan](https://admin-pc.taild66954.ts.net/app/transport-plan)
 - **Chuyến vận chuyển (Delivery Trip)**: [https://admin-pc.taild66954.ts.net/app/delivery-trip](https://admin-pc.taild66954.ts.net/app/delivery-trip)
 - **Kế hoạch bảo dưỡng xe (Fleet Maintenance Plan)**: [https://admin-pc.taild66954.ts.net/app/fleet-maintenance-plan](https://admin-pc.taild66954.ts.net/app/fleet-maintenance-plan)
 - **Nhật ký & Chi phí xe (Vehicle Log)**: [https://admin-pc.taild66954.ts.net/app/vehicle-log](https://admin-pc.taild66954.ts.net/app/vehicle-log)
@@ -47,6 +48,8 @@
 - **Bản đồ giám sát đội xe (Fleet Map)**: [https://admin-pc.taild66954.ts.net/app/fleet-map](https://admin-pc.taild66954.ts.net/app/fleet-map)
 - **Lịch trình GPS tài xế (Driver GPS)**: [https://admin-pc.taild66954.ts.net/app/driver-gps](https://admin-pc.taild66954.ts.net/app/driver-gps)
 - **Nhật ký tọa độ GPS (GPS Log)**: [https://admin-pc.taild66954.ts.net/app/gps-log](https://admin-pc.taild66954.ts.net/app/gps-log)
+- **Hóa đơn bán hàng / Cước vận chuyển (Sales Invoice)**: [https://admin-pc.taild66954.ts.net/app/sales-invoice](https://admin-pc.taild66954.ts.net/app/sales-invoice)
+- **Báo cáo đối soát vận tải (Transport Reconciliation)**: [https://admin-pc.taild66954.ts.net/app/query-report/Transport%20Reconciliation](https://admin-pc.taild66954.ts.net/app/query-report/Transport%20Reconciliation)
 
 
 ---

@@ -72,6 +72,15 @@ def validate_vehicle_log(doc, method=None):
     if previous and state != (previous.get("custom_approval_status") or "Draft") and not transition:
         frappe.throw("Chỉ được đổi trạng thái Vehicle Log bằng thao tác duyệt.", frappe.PermissionError)
 
+    if doc.get("custom_delivery_trip"):
+        import math
+        if doc.get("custom_expense_type") == "Fuel":
+            if flt(doc.fuel_qty) <= 0 or flt(doc.price) <= 0:
+                fail("DPM_LOG_FUEL", "Số lít và đơn giá nhiên liệu phải lớn hơn 0.")
+            doc.custom_expense_amount = flt(doc.fuel_qty) * flt(doc.price)
+        if not doc.get("custom_expense_type") or not math.isfinite(flt(doc.custom_expense_amount)) or flt(doc.custom_expense_amount) <= 0:
+            fail("DPM_LOG_AMOUNT", "Chi phí chuyến cần loại chi phí và số tiền hữu hạn lớn hơn 0.")
+
     if method == "before_submit":
         if not reviewer or state != "Approved" or not doc.flags.get("dp_vehicle_log_approval"):
             frappe.throw("Vehicle Log phải được Admin/Fleet Manager duyệt bằng nút Duyệt chi phí trước khi Submit.", frappe.PermissionError)

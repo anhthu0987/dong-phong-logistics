@@ -19,7 +19,7 @@ AREAS = (
         ('Ghi nhận bảo dưỡng', 'Fleet Maintenance Record'),
     )),
     ('DP Transport Planning', 'Điều phối và quản lý chuyến', 'DP Transport Planning', (
-        ('Chuyến vận chuyển', 'Delivery Trip'),
+        ('Kế hoạch vận chuyển', 'Transport Plan'), ('Chuyến vận chuyển', 'Delivery Trip'),
     )),
     ('DP Tracking and POD', 'Theo dõi và giao nhận', 'DP Tracking and POD', (
         ('Xác nhận giao hàng', 'Delivery Confirmation'),
@@ -27,7 +27,7 @@ AREAS = (
     )),
     ('DP Accounts', 'Hóa đơn, công nợ và báo cáo', 'Accounts', (
         ('Hóa đơn bán hàng', 'Sales Invoice'), ('Thanh toán', 'Payment Entry'),
-        ('Hóa đơn mua hàng', 'Purchase Invoice'),
+        ('Hóa đơn mua hàng', 'Purchase Invoice'), ('Bút toán chi phí', 'Journal Entry'),
     )),
 )
 
@@ -64,6 +64,8 @@ def install_workspaces():
         links = [(label, dt, 'DocType') for label, dt in doctypes]
         if name == 'DP Tracking and POD':
             links += [('Bản đồ theo chuyến', 'fleet-map', 'Page'), ('Lịch trình tài xế', 'driver-gps', 'Page')]
+        if name == 'DP Accounts':
+            links += [('Đối soát vận tải', 'Transport Reconciliation', 'Report')]
         return links
     for index, (name, title, module, doctypes) in enumerate(AREAS):
         _workspace(name, title, module,

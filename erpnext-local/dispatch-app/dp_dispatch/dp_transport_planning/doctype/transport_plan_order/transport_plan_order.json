@@ -1,0 +1,22 @@
+{
+  "doctype": "DocType",
+  "name": "Transport Plan Order",
+  "module": "DP Transport Planning",
+  "engine": "InnoDB",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "delivery_order",
+      "label": "Đơn vận chuyển",
+      "fieldtype": "Link",
+      "options": "Delivery Order",
+      "reqd": 1,
+      "in_list_view": 1
+    }
+  ],
+  "field_order": [
+    "delivery_order"
+  ],
+  "permissions": [],
+  "istable": 1
+}

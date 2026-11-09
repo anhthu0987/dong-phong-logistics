@@ -1,0 +1,194 @@
+{
+  "doctype": "DocType",
+  "name": "Transport Plan",
+  "module": "DP Transport Planning",
+  "engine": "InnoDB",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "title",
+      "label": "Tên kế hoạch",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "company",
+      "label": "Công ty",
+      "fieldtype": "Link",
+      "options": "Company",
+      "reqd": 1
+    },
+    {
+      "fieldname": "departure",
+      "label": "Xuất phát",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "end_time",
+      "label": "Hạn về điểm xuất phát",
+      "fieldtype": "Datetime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "orders",
+      "label": "Đơn cần vận chuyển",
+      "fieldtype": "Table",
+      "options": "Transport Plan Order",
+      "reqd": 1
+    },
+    {
+      "fieldname": "vehicles",
+      "label": "Xe và tài xế được phép sử dụng",
+      "fieldtype": "Table",
+      "options": "Transport Plan Vehicle",
+      "reqd": 1
+    },
+    {
+      "fieldname": "status",
+      "label": "Trạng thái",
+      "fieldtype": "Select",
+      "options": "Draft\nQueued\nComputing\nReady\nReleased\nRejected\nFailed\nInfeasible",
+      "default": "Draft",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "version",
+      "label": "Phiên bản",
+      "fieldtype": "Int",
+      "read_only": 1,
+      "default": 0
+    },
+    {
+      "fieldname": "requested_by",
+      "label": "Người yêu cầu",
+      "fieldtype": "Link",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "requested_at",
+      "label": "Yêu cầu lúc",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "computed_at",
+      "label": "Tính xong lúc",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "approved_by",
+      "label": "Người duyệt",
+      "fieldtype": "Link",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "approved_at",
+      "label": "Duyệt lúc",
+      "fieldtype": "Datetime",
+      "read_only": 1
+    },
+    {
+      "fieldname": "review_note",
+      "label": "Ý kiến duyệt/từ chối",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "error_message",
+      "label": "Kết quả xử lý",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "snapshot",
+      "label": "Đầu vào đã chốt",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "input_hash",
+      "label": "Mã kiểm tra đầu vào",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "run_token",
+      "label": "Mã lần tính",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "proposal",
+      "label": "Phương án",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "published_trips",
+      "label": "Chuyến đã phát hành",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "read_only": 1
+    },
+    {
+      "fieldname": "proposal_view",
+      "label": "Phương án vận chuyển",
+      "fieldtype": "HTML"
+    }
+  ],
+  "field_order": [
+    "title",
+    "company",
+    "departure",
+    "end_time",
+    "orders",
+    "vehicles",
+    "status",
+    "version",
+    "requested_by",
+    "requested_at",
+    "computed_at",
+    "approved_by",
+    "approved_at",
+    "review_note",
+    "error_message",
+    "snapshot",
+    "input_hash",
+    "run_token",
+    "proposal",
+    "published_trips",
+    "proposal_view"
+  ],
+  "permissions": [
+    {
+      "role": "Fleet Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 0
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 0
+    }
+  ],
+  "istable": 0,
+  "autoname": "format:DP-PLAN-{YYYY}-{#####}",
+  "title_field": "title",
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}

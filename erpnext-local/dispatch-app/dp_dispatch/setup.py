@@ -88,6 +88,10 @@ def install():
     if frappe.db.exists('Client Script', 'DP Dispatch Fleet Maintenance Record'):
         frappe.db.set_value('Client Script', 'DP Dispatch Fleet Maintenance Record', 'enabled', 0)
     install_client_script('DP Dispatch Vehicle Log', 'Vehicle Log', 'vehicle_log.js')
+    from dp_dispatch.accounting_setup import install as install_accounting
+    install_accounting()
+    from dp_dispatch.planning_setup import install as install_planning
+    install_planning()
     install_dispatch_workspace()
     install_dispatch_sidebar()
     frappe.db.add_index('Delivery Trip',['vehicle','departure_time'],'dp_vehicle_departure')

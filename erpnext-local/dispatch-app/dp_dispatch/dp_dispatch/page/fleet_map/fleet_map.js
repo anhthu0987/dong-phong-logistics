@@ -356,7 +356,15 @@ frappe.pages['fleet-map'].on_page_load = function (wrapper) {
         stopMarkers.push(marker);
       });
       // This is a schematic in approved stop order, never a road-routing/optimization result.
-      if (path.length > 1 && !missing.length) L.polyline(path,{color:'#18181b',dashArray:'6 6',weight:3}).addTo(routeLayer);
+      let approvedRoute;
+      try { approvedRoute = JSON.parse(data.trip.custom_planned_route || 'null'); } catch(e) {}
+      if (approvedRoute?.segments?.length) {
+        for (const segment of approvedRoute.segments) {
+          const road = segment.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+          L.polyline(road,{color:'#7c3aed',weight:4}).addTo(routeLayer);
+          for (const pt of road) points.push(pt);
+        }
+      } else if (path.length > 1 && !missing.length) L.polyline(path,{color:'#18181b',dashArray:'6 6',weight:3}).addTo(routeLayer);
       const p = data.position;
       let positionText = 'Chưa có GPS cho chuyến này';
       if (p) {
